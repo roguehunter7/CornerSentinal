@@ -52,7 +52,7 @@ def init_tracker():
                             nms_max_overlap=cfg_deep.DEEPSORT.NMS_MAX_OVERLAP, max_iou_distance=cfg_deep.DEEPSORT.MAX_IOU_DISTANCE,
                             max_age=cfg_deep.DEEPSORT.MAX_AGE, n_init=cfg_deep.DEEPSORT.N_INIT, nn_budget=cfg_deep.DEEPSORT.NN_BUDGET,
                             use_cuda=True)
-##########################################################################################
+
 def xyxy_to_xywh(*xyxy):
     """" Calculates the relative bounding box from absolute pixel values. """
     bbox_left = min([xyxy[0].item(), xyxy[2].item()])
@@ -166,8 +166,6 @@ def get_direction(point1, point2):
 
     return direction_str
 def draw_boxes(img, bbox, names,object_id, identities=None, offset=(0, 0)):
-    cv2.line(img, line[0], line[1], (46,162,112), 3)
-
     height, width, _ = img.shape
     # remove tracked point from buffer if object is lost
     for key in list(data_deque):
@@ -308,7 +306,6 @@ def predict(cfg):
     cfg.source = cfg.source if cfg.source is not None else ROOT / "assets"
     predictor = DetectionPredictor(cfg)
     predictor()
-
 
 if __name__ == "__main__":
     predict()
