@@ -202,7 +202,7 @@ def draw_boxes(img, bbox, names,object_id, identities=None, offset=(0, 0)):
           object_speed = estimatespeed(data_deque[id][1], data_deque[id][0])
           speed_line_queue[id].append(object_speed)
           if intersect(data_deque[id][0], data_deque[id][1], line[0], line[1]):
-              cv2.line(img, line[0], line[1], (255, 255, 255), 3)
+              
               if "South" in direction:
                 if obj_name not in object_counter:
                     object_counter[obj_name] = 1
