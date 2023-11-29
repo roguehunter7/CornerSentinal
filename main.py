@@ -73,11 +73,11 @@ def calculate_avg_speed_left(track_id) :
 
     return round((speed_bg + speed_gr) / 2, 2)
 
-VIDEOS_DIR = "./video"
-video_path = os.path.join(VIDEOS_DIR, 'pexels_videos_2733 (1080p).mp4')
+VIDEOS_DIR = "/test_images"
+video_path = os.path.join(VIDEOS_DIR, 'hbfootage.mp4')
 video_path_out = '{}_out.mp4'.format(video_path)
 
-cap = cv2.VideoCapture("./video/pexels_videos_2733 (1080p).mp4")
+cap = cv2.VideoCapture(video_path)
 
 ret, frame = cap.read()
 H, W, _ = frame.shape
