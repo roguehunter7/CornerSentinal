@@ -73,7 +73,7 @@ def calculate_avg_speed_left(track_id) :
 
     return round((speed_bg + speed_gr) / 2, 2)
 
-VIDEOS_DIR = "/test_images"
+VIDEOS_DIR = "/content/CornerSentinal/test_images"
 video_path = os.path.join(VIDEOS_DIR, 'hbfootage.mp4')
 video_path_out = '{}_out.mp4'.format(video_path)
 
