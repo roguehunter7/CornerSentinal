@@ -1,4 +1,4 @@
-git+https://github.com/ultralytics/ultralytics.git@main 
+ultralytics
 filterpy 
 scikit-image 
 onnxruntime 
