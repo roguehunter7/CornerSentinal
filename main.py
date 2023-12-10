@@ -1,141 +1,108 @@
-# Importing Libraries
+from collections import defaultdict
 import cv2
 import numpy as np
-from datetime import datetime
 from ultralytics import YOLO
-from sort.sort import Sort
-import os
 
-tracker = Sort()
-model = YOLO("yolov8n.pt")
+# Load the YOLOv8 model
+model = YOLO('yolov8x.pt')
 
-# Setting Lines and Variables
-BLUE_LINE = [(980, 780), (1225, 780)]
-GREEN_LINE = [(980, 800), (1270, 800)]
-RED_LINE = [(980, 820), (1310, 820)]
+# Open the video file
+video_path = "/content/CornerSentinal/test_images/leftside.mp4"
+cap = cv2.VideoCapture(video_path)
 
-# Only keeping lines for the right side
-PREV_LINE_RIGHT = [(980, 770), (1210, 770)]
-PASS_LINE_RIGHT = [(995, 860), (1310, 860)]
-
-cross_blue_line = {}
-cross_green_line = {}
-cross_red_line = {}
-
-avg_speeds = {}
-
+# Define the constants for speed calculation
 VIDEO_FPS = 30
 FACTOR_KM = 3.6
 LATENCY_FPS = 15
 
-# Euclidean Distance Function
-def euclidean_distance(point1: tuple, point2: tuple):
-    x1, y1 = point1
-    x2, y2 = point2
-    distance = ((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5
-    return distance
+# Store the track history
+track_history = defaultdict(lambda: [])
 
-# Speed Calculation on the Right Side of the Road
-def calculate_avg_speed_right(track_id):
-    time_bg = (cross_green_line[track_id]["time"] - cross_blue_line[track_id]["time"]).total_seconds()
-    time_gr = (cross_red_line[track_id]["time"] - cross_green_line[track_id]["time"]).total_seconds()
+# Define the output video file path with MP4 format
+output_video_path = "/content/CornerSentinal/test_images/leftside_out.mp4"
+fourcc = cv2.VideoWriter_fourcc(*"mp4v")  # Use "mp4v" for H.264 compression
+out = cv2.VideoWriter(output_video_path, fourcc, VIDEO_FPS, (int(cap.get(3)), int(cap.get(4))))
 
-    distance_bg = euclidean_distance(cross_green_line[track_id]["point"], cross_blue_line[track_id]["point"])
-    distance_gr = euclidean_distance(cross_red_line[track_id]["point"], cross_green_line[track_id]["point"])
+# Function to calculate speed using Optical Flow
+def calculate_speed(flow, factor_km=FACTOR_KM, latency_fps=LATENCY_FPS):
+    magnitudes = np.sqrt(flow[:, :, 0] ** 2 + flow[:, :, 1] ** 2)
+    average_speed = (np.mean(magnitudes) * factor_km * latency_fps) / 1200
+    return average_speed
 
-    speed_bg = round((distance_bg / (time_bg * VIDEO_FPS)) * (FACTOR_KM * LATENCY_FPS), 2)
-    speed_gr = round((distance_gr / (time_gr * VIDEO_FPS)) * (FACTOR_KM * LATENCY_FPS), 2)
-
-    return round((speed_bg + speed_gr) / 2, 2)
-
-# Load the video
-VIDEOS_DIR = "/content/CornerSentinal/test_images"
-video_path = os.path.join(VIDEOS_DIR, 'pexels_videos_2733 (1080p).mp4')
-cap = cv2.VideoCapture(video_path)
-
-# Define the codec and create VideoWriter object
-H, W, _ = (int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)), int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), 3)
-video_path_out = '{}_out.mp4'.format(video_path)
-out = cv2.VideoWriter(video_path_out, cv2.VideoWriter_fourcc(*'mp4v'), int(cap.get(cv2.CAP_PROP_FPS)), (W, H))
+# Placeholder function to simulate displaying binary data
+def display_binary_code(frame, binary_code):
+    binary_text = "Binary Code: " + ''.join(binary_code)
+    cv2.putText(frame, binary_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
 
 while cap.isOpened():
-    ret, frame = cap.read()
+    # Read a frame from the video
+    success, frame = cap.read()
 
-    if not ret:
+    if success:
+        # Run YOLOv8 tracking on the frame, persisting tracks between frames
+        results = model.track(frame, persist=True, tracker='botsort.yaml', classes=[2, 3, 5, 7])
+
+        # Check if the results are not None and contain boxes
+        if results is not None and len(results) > 0:
+            # Get the boxes, ids, and confidences
+            boxes = results[0].boxes.xyxy.cpu().numpy().astype(int)
+            class_id = results[0].boxes.id.cpu().numpy().astype(int)
+
+            # Plot the tracks and calculate/display speeds using Optical Flow
+            for box in boxes:
+                x, y, w, h = box
+                track_id = hash(box)
+                track = track_history[track_id]
+                track.append((float(x), float(y)))  # x, y center point
+
+                # Calculate speed using Optical Flow
+                if len(track) > 1:
+                    prev_pts = np.array(track[-2]).reshape(-1, 1, 2).astype(np.float32)
+                    curr_pts = np.array(track[-1]).reshape(-1, 1, 2).astype(np.float32)
+
+                    flow, status, _ = cv2.calcOpticalFlowPyrLK(
+                        cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY),
+                        cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY),
+                        prev_pts,
+                        None
+                    )
+
+                    speed = calculate_speed(flow)
+
+                    # Display speed on the frame (corrected scaling)
+                    cv2.putText(annotated_frame, f"Speed: {speed:.2f} km/h", (int(x), int(y) - 10),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+                    # Binary code generation based on conditions
+                    binary_code = ['0'] * 7
+                    binary_code[0] = '1' #start bit
+                    class_id = int(max(results[0].boxes.cls))  # Taking max class id
+                    if class_id == 2:  # Motorcycle
+                        binary_code[1:4] = ['001']
+                    elif class_id == 3: # Car
+                        binary_code[1:4] = ['010']
+                    elif class_id == 5 or 7: # Bus or Truck
+                        binary_code[1:4] = ['101'] 
+                    if speed > 60: # Overspeed Vehicle
+                        binary_code[5:7] = '11'
+                    elif speed >= 40 && speed < 60:
+                        binary_code[5:7] = '10'
+                    elif speed > 1.5 && speed < 40:
+                        binary_code[5:7] = '01' 
+                    
+                    # Display binary code on the frame
+                    display_binary_code(annotated_frame, binary_code)
+
+            # Display the annotated frame
+            out.write(annotated_frame)  # Save the frame to the output video
+
+        # Break the loop if 'q' is pressed
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            break
+    else:
+        # Break the loop if the end of the video is reached
         break
 
-    height = frame.shape[0]
-    width = frame.shape[1]
-
-    mask_right = np.zeros((height, width), dtype=np.uint8)
-    pts_right = np.array([[[950, 1050], [950, 580], [1030, 580], [1540, 1080]]])
-    pts_right.reshape((-1, 1, 2))
-    cv2.fillPoly(mask_right, pts_right, 255)
-
-    right_zone = cv2.bitwise_and(frame, frame, mask=mask_right)
-
-    results = model(right_zone, stream=True)
-
-    for res in results:
-        filtered_indeces = np.where(res.boxes.conf.cpu().numpy() > 0.05)[0]
-        boxes = res.boxes.xyxy.cpu().numpy()[filtered_indeces].astype(int)
-
-        tracks = tracker.update(boxes)
-        tracks = tracks.astype(int)
-
-        for xmin, ymin, xmax, ymax, track_id in tracks:
-            xc, yc = int((xmin + xmax) / 2), ymax
-
-            if track_id not in cross_blue_line:
-                cross_blue = (BLUE_LINE[1][0] - BLUE_LINE[0][0]) * (yc - BLUE_LINE[0][1]) - (
-                            BLUE_LINE[1][1] - BLUE_LINE[0][1]) * (xc - BLUE_LINE[0][0])
-                if cross_blue >= 0:
-                    cross_blue_line[track_id] = {
-                        "time": datetime.now(),
-                        "point": (xc, yc)
-                    }
-
-            elif track_id not in cross_green_line and track_id in cross_blue_line:
-                cross_green = (GREEN_LINE[1][0] - GREEN_LINE[0][0]) * (yc - GREEN_LINE[0][1]) - (
-                            GREEN_LINE[1][1] - GREEN_LINE[0][1]) * (xc - GREEN_LINE[0][0])
-                if cross_green >= 0:
-                    cross_green_line[track_id] = {
-                        "time": datetime.now(),
-                        "point": (xc, yc)
-                    }
-
-            elif track_id not in cross_red_line and track_id in cross_green_line:
-                cross_red = (RED_LINE[1][0] - RED_LINE[0][0]) * (yc - RED_LINE[0][1]) - (
-                            RED_LINE[1][1] - RED_LINE[0][1]) * (xc - RED_LINE[0][0])
-                if cross_red >= 0:
-                    cross_red_line[track_id] = {
-                        "time": datetime.now(),
-                        "point": (xc, yc)
-                    }
-
-                    avg_speed = calculate_avg_speed_right(track_id)
-                    avg_speeds[track_id] = f"{avg_speed} km/h"
-
-            cross_line_right = (PASS_LINE_RIGHT[1][0] - PASS_LINE_RIGHT[0][0]) * (
-                        yc - PASS_LINE_RIGHT[0][1]) - (PASS_LINE_RIGHT[1][1] - PASS_LINE_RIGHT[0][1]) * (
-                                       xc - PASS_LINE_RIGHT[0][0])
-
-            if track_id in avg_speeds and track_id in cross_blue_line and track_id in cross_green_line and track_id in cross_red_line and cross_line_right <= 0:
-                cv2.putText(img=frame, text=avg_speeds[track_id], org=(xmin, ymin - 10),
-                            fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=1, color=(0, 255, 0), thickness=2)
-
-            cv2.rectangle(img=frame, pt1=(xmin, ymin), pt2=(xmax, ymax), color=(255, 255, 0), thickness=2)
-
-    cv2.line(frame, PASS_LINE_RIGHT[0], PASS_LINE_RIGHT[1], (0, 0, 255), 3)
-    cv2.line(frame, PREV_LINE_RIGHT[0], PREV_LINE_RIGHT[1], (252, 111, 3), 3)
-    out.write(frame)
-
-    cv2.imshow("Frame", frame)
-
-    if cv2.waitKey(10) & 0xFF == ord('q'):
-        cap.release()
-        cv2.destroyAllWindows()
-        break
-cap.release()
+# Release the video writer and close the display window
 out.release()
+cap.release()
 cv2.destroyAllWindows()
