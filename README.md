@@ -1,3 +1,3 @@
 # CornerSentinal
 
-## Computer Vision Advanced Warning System with YOLOv8, Sort and OpenCV
+## Computer Vision Based Advanced Warning System Using YOLOv8 
