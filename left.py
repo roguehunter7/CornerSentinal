@@ -4,8 +4,7 @@ import cv2
 import numpy as np
 from time import time
 from ultralytics import YOLO
-
-import socket
+from send import *
 
 def send_binary_code(ip, port, binary_code):
     # Create a socket object
@@ -199,12 +198,12 @@ while cap.isOpened():
                             prev_frame = roi
                             prev_pts = np.array([[(int(w/2), int(h/2))]], dtype=np.float32)
 
-                            # Send the binary code to Raspberry Pi 2
-                            send_binary_code(pi2_ip, common_port, binary_code)
+                        # Send the binary code to Raspberry Pi 2
+                        send_binary_code(pi2_ip, common_port, binary_code)
 
-                            # Receive binary code from Raspberry Pi 2 and print it
-                            received_binary_code = receive_binary_code("0.0.0.0", common_port)
-                            print(f"Received Binary Code from Raspberry Pi 2: {received_binary_code}")
+                        # Receive binary code from Raspberry Pi 2 and print it
+                        received_binary_code = receive_binary_code("0.0.0.0", common_port)
+                        print(f"Received Binary Code from Raspberry Pi 2: {received_binary_code}")
                             
 
             # Display the annotated frame
