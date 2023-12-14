@@ -6,27 +6,13 @@ from time import time
 from ultralytics import YOLO
 
 
-def send_binary_code(ip, port, binary_code):
-    # Create a socket object
-    sender_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    # Connect to the receiver
-    sender_socket.connect((ip, port))
+def send_binary_code(binary_code):
     # Send the binary code
     sender_socket.sendall(binary_code.encode())
     # Close the socket
     sender_socket.close()
 
-def receive_binary_code(ip, port):
-    # Create a socket object
-    receiver_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    # Bind the socket to a specific IP address and port
-    receiver_socket.bind((ip, port))
-    # Listen for incoming connections
-    receiver_socket.listen()
-    print("Waiting for connection...")
-    # Accept a connection from the sender
-    sender_socket, sender_address = receiver_socket.accept()
-    print(f"Connected to {sender_address}")
+def receive_binary_code():
     # Receive the binary code
     binary_code_received = sender_socket.recv(1024).decode('utf-8')
     # Close the sockets
@@ -109,6 +95,22 @@ prev_pts = None
 pi2_ip = "192.168.1.1"
 common_port = 12345  # Choose a suitable common port for communication
 
+# Create a socket object
+sender_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# Connect to the receiver
+sender_socket.connect((pi2_ip, common_port))
+
+# Create a socket object
+receiver_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# Bind the socket to a specific IP address and port
+receiver_socket.bind(("0.0.0.0", common_port))
+# Listen for incoming connections
+receiver_socket.listen()
+print("Waiting for connection...")
+# Accept a connection from the sender
+sender_socket, sender_address = receiver_socket.accept()
+print(f"Connected to {sender_address}")
+
 while cap.isOpened():
     # Read a frame from the video
     success, frame = cap.read()
@@ -172,7 +174,8 @@ while cap.isOpened():
                         # Display speed on the frame (corrected scaling)
                         cv2.putText(annotated_frame, f"Speed: {speed:.2f} km/h", (int(x), int(y) - 10),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-
+                        # Send the binary code to Raspberry Pi 2
+                        send_binary_code(binary_code)
                         # Extract the region around the detected object
                         roi = frame_gray[int(y):int(y+h), int(x):int(x+w)]
 
@@ -198,12 +201,11 @@ while cap.isOpened():
                             prev_frame = roi
                             prev_pts = np.array([[(int(w/2), int(h/2))]], dtype=np.float32)
 
-                        # Send the binary code to Raspberry Pi 2
-                        send_binary_code(pi2_ip, common_port, binary_code)
+                    
 
-                        # Receive binary code from Raspberry Pi 2 and print it
-                        received_binary_code = receive_binary_code("0.0.0.0", common_port)
-                        print(f"Received Binary Code from Raspberry Pi 2: {received_binary_code}")
+            # Receive binary code from Raspberry Pi 2 and print it
+            received_binary_code = receive_binary_code()
+            print(f"Received Binary Code from Raspberry Pi 1: {received_binary_code}")
 
             # Display the annotated frame
             cv2.imshow("Frame", annotated_frame)
