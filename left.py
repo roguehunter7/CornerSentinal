@@ -39,7 +39,7 @@ def receive_binary_code(ip, port):
 model = YOLO('yolov8n.pt')
 
 # Open the video file
-video_path = "/content/CornerSentinal/test_images/leftside.mp4"
+video_path = "test_images/leftside.mp4"
 cap = cv2.VideoCapture(video_path)
 
 # Define the constants for speed calculation
@@ -54,7 +54,7 @@ track_history = defaultdict(list)
 stationary_timers = defaultdict(float)
 
 # Define the output video file path with MP4 format
-output_video_path = "/content/CornerSentinal/test_images/leftside_out.mp4"
+output_video_path = "test_images/leftside_out.mp4"
 fourcc = cv2.VideoWriter_fourcc(*"mp4v")  # Use "mp4v" for H.264 compression
 out = cv2.VideoWriter(output_video_path, fourcc, VIDEO_FPS, (int(cap.get(3)), int(cap.get(4))))
 
