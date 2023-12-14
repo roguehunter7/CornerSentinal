@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 from time import time
 from ultralytics import YOLO
-from send import *
+
 
 def send_binary_code(ip, port, binary_code):
     # Create a socket object
