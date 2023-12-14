@@ -36,7 +36,7 @@ def receive_binary_code(ip, port):
     return binary_code_received
 
 # Load the YOLOv8 model
-model = YOLO('yolov8n.pt')
+model = YOLO('yolov8n.onnx')
 
 # Open the video file
 video_path = "test_images/leftside.mp4"
@@ -205,10 +205,12 @@ while cap.isOpened():
                             # Receive binary code from Raspberry Pi 2 and print it
                             received_binary_code = receive_binary_code("0.0.0.0", common_port)
                             print(f"Received Binary Code from Raspberry Pi 2: {received_binary_code}")
+                            
 
             # Display the annotated frame
-            out.write(annotated_frame)  # Save the frame to the output video
             cv2.imshow("Frame", annotated_frame)
+            out.write(annotated_frame)  # Save the frame to the output video
+            
         # Break the loop if 'q' is pressed
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break
