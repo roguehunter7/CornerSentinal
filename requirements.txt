@@ -4,5 +4,6 @@ scikit-image
 onnxruntime 
 onnxsim 
 onnx 
-lap
 ncnn
+rpi.gpio
+gpiozero

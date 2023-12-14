@@ -11,20 +11,14 @@ def transmit_binary_data(binary_data):
     time.sleep(0.5)
 
     # Transmit each bit
-    for bit in binary_data:
+    for bit in binary_data[1:8]:
         if bit == '0':
             led.off()
         else:
             led.on()
 
-        time.sleep(0.5)
+        time.sleep(0.2)
 
     # Stop bit
     led.on()
-    time.sleep(0.1)
-
-# Binary data to transmit
-binary_data_to_transmit = "010010"  # Replace with the 8-bit data you want to transmit
-
-# Transmit data
-transmit_binary_data(binary_data_to_transmit)
+    time.sleep(0.5)
