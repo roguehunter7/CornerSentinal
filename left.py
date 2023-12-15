@@ -99,10 +99,10 @@ while cap.isOpened():
                         if len(distances) > 1:
                             speed = calculate_speed(distances, FACTOR_KM, LATENCY_FPS)
                             is_stationary = speed < 1.0
-                            stationary_timers[track_ids[i]] = time() if not is_stationary else stationary_timers[
+                            stationary_timers[track_ids[i]] = time.time() if not is_stationary else stationary_timers[
                                 track_ids[i]]
 
-                            if time() - stationary_timers[track_ids[i]] > 10.0:
+                            if time.time() - stationary_timers[track_ids[i]] > 10.0:
                                 is_stationary = True
 
                             is_wrong_side = False
