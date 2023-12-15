@@ -17,13 +17,13 @@ def read_binary_data():
             pass
         # Capture the start condition
         for _ in range(5):
-            time.sleep(0.5)
+            time.sleep(0.1)
             capture_msg = True if ldr.value == 1 else False
 
         # Read the 7 bits after the start condition
         if capture_msg:
             for _ in range(7):
-                time.sleep(0.5)
+                time.sleep(0.25)
                 binary_data += '1' if ldr.value == 1 else '0'
 
         print('binary data:', binary_data)
@@ -31,7 +31,7 @@ def read_binary_data():
         # Check for the stop condition
         if capture_msg:
             for _ in range(5):
-                time.sleep(0.5)
+                time.sleep(0.1)
                 valid_msg = True if ldr.value == 1 else False
 
         # Process and display the message bits
