@@ -26,9 +26,9 @@ def generate_binary_code(class_id, speed, is_stationary, is_wrong_side):
     binary_code[1] = '1' if is_stationary else '0'
 
     # Replace class id section
-    if class_id == 2:  # Motorcycle
+    if class_id == 3:  # Motorcycle
         binary_code[2:5] = '001'
-    elif class_id == 3:  # Car
+    elif class_id == 2:  # Car
         binary_code[2:5] = '010'
     elif class_id in [5, 7]:  # Bus or Truck
         binary_code[2:5] = '011'
