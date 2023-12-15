@@ -122,7 +122,7 @@ while cap.isOpened():
                         cv2.putText(annotated_frame, f"Speed: {speed:.2f} km/h", (int(x), int(y) - 10),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
                         roi = frame_gray[int(y):int(y + h), int(x):int(x + w)]
-
+                        cv2.imshow("Frame", annotated_frame)
                         if prev_frame is not None and prev_pts is not None:
                             prev_frame_resized = cv2.resize(prev_frame, (roi.shape[1], roi.shape[0]))
                             flow = cv2.calcOpticalFlowPyrLK(prev_frame_resized, roi, prev_pts, None,
@@ -140,7 +140,7 @@ while cap.isOpened():
         # Increment frame counter
         frame_counter += 1
 
-        cv2.imshow("Frame", annotated_frame)
+        
 
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break
