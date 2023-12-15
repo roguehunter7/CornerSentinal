@@ -4,7 +4,6 @@ import numpy as np
 from time import time
 from ultralytics import YOLO
 from send import *
-import threading
 
 # Function to calculate Euclidean distance
 def calculate_distance(point1, point2):
@@ -12,6 +11,9 @@ def calculate_distance(point1, point2):
 
 # Function to calculate speed using Euclidean distance
 def calculate_speed(distances, factor_km, latency_fps):
+    if len(distances) <= 1:
+        return 0.0
+
     average_speed = (np.mean(distances) * factor_km) / latency_fps
     return average_speed
 
@@ -73,89 +75,77 @@ frame_counter = 0
 prev_frame = None
 prev_pts = None
 
-# Flag to indicate the end of the video
-end_of_video = False
+# Placeholder for the previous binary code
+prev_binary_code = None
 
-# Lock for accessing shared resources
-lock = threading.Lock()
+while cap.isOpened():
+    success, frame = cap.read()
 
-# Function to process frames in a separate thread
-def process_frames():
-    global cap, frame_counter, prev_frame, prev_pts, end_of_video
+    if success:
+        frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-    while not end_of_video:
-        success, frame = cap.read()
+        # Check if YOLO inference should be performed on this frame
+        if frame_counter % 2 == 0:
+            results = model.track(frame, persist=True, tracker='botsort.yaml', classes=[2, 3, 5, 7], imgsz=(320, 320))
+            annotated_frame = results[0].plot()
 
-        if success:
-            # Increment frame counter
-            frame_counter += 1
+            if results[0].boxes.id is not None:
+                boxes = results[0].boxes.xywh.cpu().numpy().astype(int)
+                class_id = results[0].boxes.cls.cpu().numpy().astype(int)
+                track_ids = results[0].boxes.id.cpu().numpy().astype(int)
 
-            frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                for i, box in enumerate(boxes):
+                    x, y, w, h = box
+                    track = track_history[track_ids[i]]
+                    track.append((float(x + w / 2), float(y + h / 2)))
 
-            # Check if YOLO inference should be performed on this frame
-            if frame_counter % 2 == 0:
-                with lock:
-                    results = model.track(frame, persist=True, tracker='botsort.yaml', classes=[2, 3, 5, 7], imgsz=(416, 416))
-                    annotated_frame = results[0].plot()
+                    if len(track) >= 2 and track[-2][1] < track[-1][1]:
+                        distances = [calculate_distance(track[j], track[j + 1]) for j in range(len(track) - 1)]
 
-                    if results[0].boxes.id is not None:
-                        boxes = results[0].boxes.xywh.cpu().numpy().astype(int)
-                        class_id = results[0].boxes.cls.cpu().numpy().astype(int)
-                        track_ids = results[0].boxes.id.cpu().numpy().astype(int)
+                        speed = calculate_speed(distances, FACTOR_KM, LATENCY_FPS)
+                        is_stationary = speed < 1.0
+                        stationary_timers[track_ids[i]] = time.time() if not is_stationary else stationary_timers[
+                            track_ids[i]]
 
-                        for i, box in enumerate(boxes):
-                            x, y, w, h = box
-                            track = track_history[track_ids[i]]
-                            track.append((float(x + w / 2), float(y + h / 2)))
+                        if time.time() - stationary_timers[track_ids[i]] > 10.0:
+                            is_stationary = True
 
-                            if len(track) >= 2 and track[-2][1] < track[-1][1]:
-                                distances = [calculate_distance(track[j], track[j + 1]) for j in range(len(track) - 1)]
+                        is_wrong_side = False
+                        binary_code = generate_binary_code(class_id[i], speed, is_stationary, is_wrong_side)
 
-                                if len(distances) > 1:
-                                    speed = calculate_speed(distances, FACTOR_KM, LATENCY_FPS)
-                                    is_stationary = speed < 1.0
-                                    stationary_timers[track_ids[i]] = time.time() if not is_stationary else stationary_timers[
-                                        track_ids[i]]
+                        # Transmit only if the binary code is different from the previous one
+                        if binary_code != prev_binary_code:
+                            transmit_binary_data(binary_code)
+                            prev_binary_code = binary_code
 
-                                    if time.time() - stationary_timers[track_ids[i]] > 10.0:
-                                        is_stationary = True
+                        display_warning_message(annotated_frame, binary_code)
+                        cv2.putText(annotated_frame, f"Speed: {speed:.2f} km/h", (int(x), int(y) - 10),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+                        roi = frame_gray[int(y):int(y + h), int(x):int(x + w)]
 
-                                    is_wrong_side = False
-                                    binary_code = generate_binary_code(class_id[i], speed, is_stationary, is_wrong_side)
-                                    transmit_binary_data(binary_code)
-                                    display_warning_message(annotated_frame, binary_code)
-                                    cv2.putText(annotated_frame, f"Speed: {speed:.2f} km/h", (int(x), int(y) - 10),
-                                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-                                    roi = frame_gray[int(y):int(y + h), int(x):int(x + w)]
+                        if prev_frame is not None and prev_pts is not None:
+                            prev_frame_resized = cv2.resize(prev_frame, (roi.shape[1], roi.shape[0]))
+                            flow = cv2.calcOpticalFlowPyrLK(prev_frame_resized, roi, prev_pts, None,
+                                                           winSize=(15, 15), maxLevel=2)
+                            flow_distances = np.sqrt(np.sum((prev_pts - flow[0]) ** 2, axis=2))
 
-                                    if prev_frame is not None and prev_pts is not None:
-                                        prev_frame_resized = cv2.resize(prev_frame, (roi.shape[1], roi.shape[0]))
-                                        flow = cv2.calcOpticalFlowPyrLK(prev_frame_resized, roi, prev_pts, None,
-                                                                       winSize=(15, 15), maxLevel=2)
-                                        flow_distances = np.sqrt(np.sum((prev_pts - flow[0]) ** 2, axis=2))
+                            for j in range(len(flow_distances)):
+                                if flow_distances[j] > 0.5:
+                                    x1, y1 = prev_pts[j].astype(int).ravel()
+                                    x2, y2 = (x + flow[0][j][0], y + flow[0][j][1]).astype(int)
+                                    cv2.line(annotated_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                            prev_frame = roi
+                            prev_pts = np.array([[(int(w / 2), int(h / 2))]], dtype=np.float32)
 
-                                        for j in range(len(flow_distances)):
-                                            if flow_distances[j] > 0.5:
-                                                x1, y1 = prev_pts[j].astype(int).ravel()
-                                                x2, y2 = (x + flow[0][j][0], y + flow[0][j][1]).astype(int)
-                                                cv2.line(annotated_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                                        prev_frame = roi
-                                        prev_pts = np.array([[(int(w / 2), int(h / 2))]], dtype=np.float32)
+        # Increment frame counter
+        frame_counter += 1
 
-                cv2.imshow("Frame", annotated_frame)
+        cv2.imshow("Frame", annotated_frame)
 
-                if cv2.waitKey(1) & 0xFF == ord("q"):
-                    break
-        else:
-            # If the video is finished, set the flag
-            end_of_video = True
-
-# Start the frame processing thread
-frame_thread = threading.Thread(target=process_frames)
-frame_thread.start()
-
-# Wait for the frame processing thread to finish
-frame_thread.join()
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            break
+    else:
+        break
 
 # Release resources
 cap.release()
