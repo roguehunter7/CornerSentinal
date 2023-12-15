@@ -6,80 +6,77 @@ LDR_PIN = 27  # Replace with the actual GPIO pin number connected to the LDR
 ldr = Button(LDR_PIN)
 
 def read_binary_data():
+    binary_data = ""
+
     while True:
-        # Wait for the start bit (long bit)
-        while not is_long_bit(0.5):
+        valid_msg = False
+        capture_msg = False
+
+        # Wait for the start condition
+        while ldr.value == 0:
             pass
+        # Capture the start condition
+        for _ in range(5):
+            time.sleep(0.5)
+            capture_msg = True if ldr.value == 1 else False
 
-        # Read the 7-bit binary data
-        binary_data = ""
-        for _ in range(7):
-            time.sleep(0.2)
-            bit_value = 1 if ldr.value else 0
-            binary_data += str(bit_value)
+        # Read the 7 bits after the start condition
+        if capture_msg:
+            for _ in range(7):
+                time.sleep(0.5)
+                binary_data += '1' if ldr.value == 1 else '0'
 
-        # Wait for the stop bit (long bit)
-        while not is_long_bit(0.5):
-            pass
+        print('binary data:', binary_data)
 
-        # Print received binary data
-        print("Received Binary Data:", binary_data)
+        # Check for the stop condition
+        if capture_msg:
+            for _ in range(5):
+                time.sleep(0.5)
+                valid_msg = True if ldr.value == 1 else False
 
-        # Decode and process the message
-        decode_binary_data(binary_data)
+        # Process and display the message bits
+        if valid_msg:
+            process_binary_data(binary_data)
 
-def is_long_bit(duration):
-    # Helper function to check if the bit duration is long
-    start_time = time.time()
-    while ldr.value == 1:
-        if time.time() - start_time >= duration:
-            return True
-    return False
+        binary_data = ""  # Reset binary_data after processing
+        time.sleep(0.1)  # Short delay to avoid rapid processing of overlapping messages
 
-def decode_binary_data(binary_data):
-    is_stationary = binary_data[0] == '1'
-    vehicle_type_bits = binary_data[1:4]
-    is_wrong_side = binary_data[4] == '1'
-    speed_bits = binary_data[5:7]
+def process_binary_data(message_bits):
+    if len(message_bits) == 7:  # Ensure exactly 7 bits are available
+        is_stationary = message_bits[0] == '1'
+        vehicle_type_bits = message_bits[1:4]
+        is_wrong_side = message_bits[4] == '1'
+        speed_bits = message_bits[5:7]
 
-    # Decode and display the appropriate warning message
-    display_warning_message(is_stationary, vehicle_type_bits, is_wrong_side, speed_bits)
+        display_warning_message(is_stationary, vehicle_type_bits, is_wrong_side, speed_bits)
+    else:
+        print("Error: Incorrect number of bits for decoding")
 
 def display_warning_message(is_stationary, vehicle_type_bits, is_wrong_side, speed_bits):
-    # Display warning message based on decoded binary data
     if is_stationary:
-        print("Warning: Vehicle is stationary")
+        if is_wrong_side:
+            print("Warning: Vehicle is broken down on the wrong side")
+        else:
+            print("Warning: Vehicle is stationary")
 
     vehicle_type = get_vehicle_type(vehicle_type_bits)
     print(f"Vehicle Type: {vehicle_type}")
 
-    if is_wrong_side:
+    if is_wrong_side and not is_stationary:
         print("Warning: Vehicle is on the wrong side")
 
     speed_category = get_speed_category(speed_bits)
     print(f"Speed Category: {speed_category}")
 
+    print("-" * 40)  # Add a line between warning messages
+
 def get_vehicle_type(vehicle_type_bits):
-    # Decode vehicle type based on binary bits
-    if vehicle_type_bits == '001':
-        return "Motorcycle"
-    elif vehicle_type_bits == '010':
-        return "Car"
-    elif vehicle_type_bits == '011':
-        return "Bus/Truck"
-    else:
-        return "Unknown"
+    vehicle_types = {'001': 'Motorcycle', '010': 'Car', '011': 'Bus/Truck', '100': 'Emergency Vehicle'}
+    return vehicle_types.get(vehicle_type_bits, 'Unknown')
 
 def get_speed_category(speed_bits):
-    # Decode speed category based on binary bits
-    if speed_bits == '11':
-        return "Overspeed Vehicle"
-    elif speed_bits == '10':
-        return "High Speed Vehicle"
-    elif speed_bits == '01':
-        return "Normal Speed Vehicle"
-    else:
-        return "Unknown Speed"
+    speed_categories = {'11': 'Overspeed Vehicle', '10': 'High Speed Vehicle', '01': 'Normal Speed Vehicle', '00': 'No Speed'}
+    return speed_categories.get(speed_bits, 'Unknown Speed')
 
 # Start listening for binary data
 read_binary_data()

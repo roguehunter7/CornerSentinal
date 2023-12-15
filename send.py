@@ -8,17 +8,20 @@ led = LED(LED_PIN)
 def transmit_binary_data(binary_data):
     # Start bit
     led.on()
-    time.sleep(0.5)
+    time.sleep(2.5)
 
     # Transmit each bit
+    print('Binary Data to be transmitted:',binary_data[1:8])
     for bit in binary_data[1:8]:
         if bit == '0':
+            print(bit)
             led.off()
         else:
             led.on()
-
-        time.sleep(0.2)
+            print(bit)
+        time.sleep(0.5)
 
     # Stop bit
     led.on()
-    time.sleep(0.5)
+    time.sleep(2.5)
+    led.off()
