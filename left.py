@@ -1,4 +1,3 @@
-import socket
 from collections import defaultdict
 import cv2
 import numpy as np
@@ -10,12 +9,10 @@ from send import *
 def calculate_distance(point1, point2):
     return np.sqrt((point2[0] - point1[0]) ** 2 + (point2[1] - point1[1]) ** 2)
 
-
 # Function to calculate speed using Euclidean distance
 def calculate_speed(distances, factor_km, latency_fps):
     average_speed = (np.mean(distances) * factor_km) / latency_fps
     return average_speed
-
 
 # Function to generate 9-bit binary code based on conditions
 def generate_binary_code(class_id, speed, is_stationary, is_wrong_side):
@@ -47,12 +44,11 @@ def generate_binary_code(class_id, speed, is_stationary, is_wrong_side):
     binary_code[8] = '1'  # stop bit
     return ''.join(binary_code)
 
-
 # Function to display warning message on the frame
 def display_warning_message(frame, binary_code):
     warning_message = f"Warning: {binary_code}"
     cv2.putText(frame, warning_message, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
-    
+
 # Load the YOLOv8 model
 model = YOLO('yolov8n.onnx')
 
@@ -69,6 +65,9 @@ LATENCY_FPS = int(cap.get(cv2.CAP_PROP_FPS)) / 2
 track_history = defaultdict(list)
 stationary_timers = defaultdict(float)
 
+# Counter to keep track of frames
+frame_counter = 0
+
 # Placeholder for the previous frame and points for optical flow
 prev_frame = None
 prev_pts = None
@@ -78,53 +77,59 @@ while cap.isOpened():
 
     if success:
         frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        results = model.track(frame, persist=True, tracker='botsort.yaml', classes=[2, 3, 5, 7],imgsz=(416,416),int8)
-        annotated_frame = results[0].plot()
 
-        if results[0].boxes.id is not None:
-            boxes = results[0].boxes.xywh.cpu().numpy().astype(int)
-            class_id = results[0].boxes.cls.cpu().numpy().astype(int)
-            track_ids = results[0].boxes.id.cpu().numpy().astype(int)
+        # Check if YOLO inference should be performed on this frame
+        if frame_counter % 2 == 0:
+            results = model.track(frame, persist=True, tracker='botsort.yaml', classes=[2, 3, 5, 7], imgsz=(416, 416))
+            annotated_frame = results[0].plot()
 
-            for i, box in enumerate(boxes):
-                x, y, w, h = box
-                track = track_history[track_ids[i]]
-                track.append((float(x + w / 2), float(y + h / 2)))
+            if results[0].boxes.id is not None:
+                boxes = results[0].boxes.xywh.cpu().numpy().astype(int)
+                class_id = results[0].boxes.cls.cpu().numpy().astype(int)
+                track_ids = results[0].boxes.id.cpu().numpy().astype(int)
 
-                if len(track) >= 2 and track[-2][1] < track[-1][1]:
-                    distances = [calculate_distance(track[j], track[j + 1]) for j in range(len(track) - 1)]
+                for i, box in enumerate(boxes):
+                    x, y, w, h = box
+                    track = track_history[track_ids[i]]
+                    track.append((float(x + w / 2), float(y + h / 2)))
 
-                    if len(distances) > 1:
-                        speed = calculate_speed(distances, FACTOR_KM, LATENCY_FPS)
-                        is_stationary = speed < 1.0
-                        stationary_timers[track_ids[i]] = time() if not is_stationary else stationary_timers[
-                            track_ids[i]]
+                    if len(track) >= 2 and track[-2][1] < track[-1][1]:
+                        distances = [calculate_distance(track[j], track[j + 1]) for j in range(len(track) - 1)]
 
-                        if time() - stationary_timers[track_ids[i]] > 10.0:
-                            is_stationary = True
+                        if len(distances) > 1:
+                            speed = calculate_speed(distances, FACTOR_KM, LATENCY_FPS)
+                            is_stationary = speed < 1.0
+                            stationary_timers[track_ids[i]] = time() if not is_stationary else stationary_timers[
+                                track_ids[i]]
 
-                        is_wrong_side = False
-                        binary_code = generate_binary_code(class_id[i], speed, is_stationary, is_wrong_side)
+                            if time() - stationary_timers[track_ids[i]] > 10.0:
+                                is_stationary = True
 
-                        display_warning_message(annotated_frame, binary_code)
-                        cv2.putText(annotated_frame, f"Speed: {speed:.2f} km/h", (int(x), int(y) - 10),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-                        roi = frame_gray[int(y):int(y + h), int(x):int(x + w)]
+                            is_wrong_side = False
+                            binary_code = generate_binary_code(class_id[i], speed, is_stationary, is_wrong_side)
+                            transmit_binary_data(binary_code)
+                            display_warning_message(annotated_frame, binary_code)
+                            cv2.putText(annotated_frame, f"Speed: {speed:.2f} km/h", (int(x), int(y) - 10),
+                                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+                            roi = frame_gray[int(y):int(y + h), int(x):int(x + w)]
 
-                        if prev_frame is not None and prev_pts is not None:
-                            prev_frame_resized = cv2.resize(prev_frame, (roi.shape[1], roi.shape[0]))
-                            flow = cv2.calcOpticalFlowPyrLK(prev_frame_resized, roi, prev_pts, None, winSize=(15, 15),
-                                                           maxLevel=2)
-                            flow_distances = np.sqrt(np.sum((prev_pts - flow[0]) ** 2, axis=2))
+                            if prev_frame is not None and prev_pts is not None:
+                                prev_frame_resized = cv2.resize(prev_frame, (roi.shape[1], roi.shape[0]))
+                                flow = cv2.calcOpticalFlowPyrLK(prev_frame_resized, roi, prev_pts, None,
+                                                               winSize=(15, 15), maxLevel=2)
+                                flow_distances = np.sqrt(np.sum((prev_pts - flow[0]) ** 2, axis=2))
 
-                            for j in range(len(flow_distances)):
-                                if flow_distances[j] > 0.5:
-                                    x1, y1 = prev_pts[j].astype(int).ravel()
-                                    x2, y2 = (x + flow[0][j][0], y + flow[0][j][1]).astype(int)
-                                    cv2.line(annotated_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                            prev_frame = roi
-                            prev_pts = np.array([[(int(w / 2), int(h / 2))]], dtype=np.float32)
-            
+                                for j in range(len(flow_distances)):
+                                    if flow_distances[j] > 0.5:
+                                        x1, y1 = prev_pts[j].astype(int).ravel()
+                                        x2, y2 = (x + flow[0][j][0], y + flow[0][j][1]).astype(int)
+                                        cv2.line(annotated_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                                prev_frame = roi
+                                prev_pts = np.array([[(int(w / 2), int(h / 2))]], dtype=np.float32)
+
+        # Increment frame counter
+        frame_counter += 1
+
         cv2.imshow("Frame", annotated_frame)
 
         if cv2.waitKey(1) & 0xFF == ord("q"):
