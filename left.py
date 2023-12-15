@@ -78,7 +78,7 @@ while cap.isOpened():
 
     if success:
         frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        results = model.track(frame, persist=True, tracker='botsort.yaml', classes=[2, 3, 5, 7])
+        results = model.track(frame, persist=True, tracker='botsort.yaml', classes=[2, 3, 5, 7],imgsz=(416,416),int8)
         annotated_frame = results[0].plot()
 
         if results[0].boxes.id is not None:
