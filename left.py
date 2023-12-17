@@ -25,13 +25,14 @@ def generate_binary_code(class_id, speed, is_stationary, is_wrong_side):
     # Stationary bit
     binary_code[1] = '1' if is_stationary else '0'
 
-    # Replace class id section
-    if class_id == 3:  # Motorcycle
-        binary_code[2:5] = '001'
-    elif class_id == 2:  # Car
+    if class_id == 0:  # Ambulance
+        binary_code[2:5] = '100'
+    elif class_id in [2,6,4]:  # Car or Van or Taxi/Auto
         binary_code[2:5] = '010'
-    elif class_id in [5, 7]:  # Bus or Truck
+    elif class_id in [5, 1]:  # Bus or Truck
         binary_code[2:5] = '011'
+    elif class_id == 3:  # Motorcycle
+        binary_code[2:5] = '001'
 
     # Wrong side warning bit
     binary_code[5] = '1' if is_wrong_side else '0'
@@ -53,7 +54,7 @@ def display_warning_message(frame, binary_code):
     cv2.putText(frame, warning_message, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
 
 # Load the YOLOv8 model
-model = YOLO('yolov8n.onnx')
+model = YOLO('./train2/weights/best.onnx')
 
 # Open the video file
 video_path = "test_images/leftside.mp4"
@@ -86,7 +87,7 @@ while cap.isOpened():
 
         # Check if YOLO inference should be performed on this frame
         if frame_counter % 2 == 0:
-            results = model.track(frame, persist=True, tracker='botsort.yaml', classes=[2, 3, 5, 7], imgsz=(320, 320))
+            results = model.track(frame, persist=True, tracker='botsort.yaml', imgsz=(320, 320), int8=True)
             annotated_frame = results[0].plot()
 
             if results[0].boxes.id is not None:
@@ -122,7 +123,7 @@ while cap.isOpened():
                         cv2.putText(annotated_frame, f"Speed: {speed:.2f} km/h", (int(x), int(y) - 10),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
                         roi = frame_gray[int(y):int(y + h), int(x):int(x + w)]
-                        cv2.imshow("Frame", annotated_frame)
+ 
                         if prev_frame is not None and prev_pts is not None:
                             prev_frame_resized = cv2.resize(prev_frame, (roi.shape[1], roi.shape[0]))
                             flow = cv2.calcOpticalFlowPyrLK(prev_frame_resized, roi, prev_pts, None,
@@ -139,8 +140,7 @@ while cap.isOpened():
 
         # Increment frame counter
         frame_counter += 1
-
-        
+        cv2.imshow("Frame", annotated_frame)
 
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break
