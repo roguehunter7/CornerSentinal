@@ -7,12 +7,5 @@ onnx
 ncnn
 rpi.gpio
 gpiozero
-lap
-fastapi
-kaleido
-lida
 python-multipart
-uvicorn
 tflite-support
-fiftyone
-roboflow
