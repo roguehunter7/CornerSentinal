@@ -108,7 +108,7 @@ while cap.isOpened():
         
         # Check if YOLO inference should be performed on this frame
         if frame_counter % 2 == 0:
-            results = model.track(frame, persist=True, tracker='botsort.yaml', imgsz=(320, 320), int8=True)
+            results = model.track(frame, persist=True, tracker='botsort.yaml', imgsz=(320, 320), int8=True, conf=0.15)
             annotated_frame = results[0].plot()
 
             if results[0].boxes.id is not None:
