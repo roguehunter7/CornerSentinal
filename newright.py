@@ -81,28 +81,37 @@ prev_pts = None
 # Placeholder for the previous binary code
 prev_binary_code = None
 
-def receive_binary_data(client_socket):
-    return client_socket.recv(1024).decode()
+# Server socket initialization on RPi2
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server_address = ('192.168.1.2', 8888)  # IP of RPi2
+server_socket.bind(server_address)
+server_socket.listen()
 
-def send_binary_data(client_socket, binary_code):
-    client_socket.sendall(binary_code.encode())
 
-# Socket initialization for connecting to RPi1
+connection, client_address = server_socket.accept()
+
+
+# Client socket initialization for connecting to RPi1
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server_address = ('192.168.1.1', 8888)  # IP of RPi1
+client_address = ('192.168.1.1', 8888)  # IP of RPi1
 
-while True:
+connected = False
+while not connected:
     try:
-        client_socket.connect(server_address)
+        client_socket.connect(client_address)
         print("Connected to RPi1")
-        break  # Break out of the loop if the connection is successful
+        connected = True
     except ConnectionRefusedError:
         print("Connection to RPi1 refused. Retrying...")
         time.sleep(1)
 
-# Establish bidirectional communication
-connection, client_address = client_socket.accept()
-print("Connection established with RPi1!")
+# Function to receive binary data
+def receive_binary_data(client_socket):
+    return client_socket.recv(1024).decode()
+
+# Function to send binary data
+def send_binary_data(client_socket, binary_code):
+    client_socket.sendall(binary_code.encode())
 
 while cap.isOpened():
     success, frame = cap.read()
