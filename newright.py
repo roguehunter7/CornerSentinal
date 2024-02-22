@@ -81,16 +81,6 @@ prev_pts = None
 # Placeholder for the previous binary code
 prev_binary_code = None
 
-# Server socket initialization on RPi2
-server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server_address = ('192.168.1.2', 8888)  # IP of RPi2
-server_socket.bind(server_address)
-server_socket.listen()
-
-
-connection, client_address = server_socket.accept()
-
-
 # Client socket initialization for connecting to RPi1
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client_address = ('192.168.1.1', 8888)  # IP of RPi1
@@ -104,6 +94,17 @@ while not connected:
     except ConnectionRefusedError:
         print("Connection to RPi1 refused. Retrying...")
         time.sleep(1)
+
+# Server socket initialization on RPi2
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server_address = ('192.168.1.2', 8888)  # IP of RPi2
+server_socket.bind(server_address)
+server_socket.listen()
+
+
+connection, client_address = server_socket.accept()
+
+
 
 # Function to receive binary data
 def receive_binary_data(client_socket):
