@@ -189,6 +189,10 @@ while cap.isOpened():
 
 # Release resources
 cap.release()
-connection.close()
+
+# Closing the server socket
 server_socket.close()
+
+# Closing the client socket
+client_socket.close()
 cv2.destroyAllWindows()
