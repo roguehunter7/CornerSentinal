@@ -4,8 +4,7 @@ scikit-image
 onnxruntime 
 onnxsim 
 onnx 
-ncnn
 rpi.gpio
 gpiozero
 python-multipart
-tflite-support
+opencv
