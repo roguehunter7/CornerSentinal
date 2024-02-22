@@ -7,4 +7,3 @@ onnx
 rpi.gpio
 gpiozero
 python-multipart
-opencv
