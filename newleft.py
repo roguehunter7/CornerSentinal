@@ -90,8 +90,14 @@ def send_binary_data(client_socket, binary_code):
 # Socket initialization for connecting to RPi2
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_address = ('192.168.1.2', 8888)  # IP of RPi2
-client_socket.connect(server_address)
-
+while True:
+    try:
+        client_socket.connect(server_address)
+        print("Connected to RPi2")
+        break  # Break out of the loop if the connection is successful
+    except ConnectionRefusedError:
+        print("Connection to RPi2 refused. Retrying...")
+        time.sleep(1)
 # Establish bidirectional communication
 connection, client_address = client_socket.accept()
 print("Connection established with RPi2!")
