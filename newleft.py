@@ -116,11 +116,6 @@ while cap.isOpened():
     if success:
         frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         
-        # Receive binary_code from the other Raspberry Pi
-        recv_binary_code = receive_binary_data
-        # Trigger transmit_binary_data function (assuming it's defined in the send module)
-        transmit_binary_data(recv_binary_code)
-        
         # Check if YOLO inference should be performed on this frame
         if frame_counter % 2 == 0:
             results = model.track(frame, persist=True, tracker='botsort.yaml', imgsz=(320, 320), int8=True, conf=0.15)
@@ -154,7 +149,12 @@ while cap.isOpened():
                         if binary_code != prev_binary_code:
                             send_binary_data(binary_code)
                             prev_binary_code = binary_code
-
+                            
+                        # Receive binary_code from the other Raspberry Pi
+                        recv_binary_code = receive_binary_data
+                        # Trigger transmit_binary_data function (assuming it's defined in the send module)
+                        transmit_binary_data(recv_binary_code)
+                        
                         display_warning_message(annotated_frame, binary_code)
                         cv2.putText(annotated_frame, f"Speed: {speed:.2f} km/h", (int(x), int(y) - 10),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
