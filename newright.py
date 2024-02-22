@@ -104,8 +104,6 @@ server_socket.listen()
 
 connection, client_address = server_socket.accept()
 
-
-
 # Function to receive binary data
 def receive_binary_data(client_socket):
     return client_socket.recv(1024).decode()
@@ -151,7 +149,7 @@ while cap.isOpened():
 
                         # Transmit only if the binary code is different from the previous one
                         if binary_code != prev_binary_code:
-                            send_binary_data(binary_code)
+                            send_binary_data(client_socket,binary_code)
                             prev_binary_code = binary_code
                             
                         # Receive binary_code from the other Raspberry Pi

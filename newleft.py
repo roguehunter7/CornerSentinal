@@ -77,6 +77,7 @@ frame_counter = 0
 # Placeholder for the previous frame and points for optical flow
 prev_frame = None
 prev_pts = None
+prev_binary_code = None
 
 # Server socket initialization on RPi1
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -147,7 +148,7 @@ while cap.isOpened():
 
                         # Transmit only if the binary code is different from the previous one
                         if binary_code != prev_binary_code:
-                            send_binary_data(binary_code)
+                            send_binary_data(client_socket,binary_code)
                             prev_binary_code = binary_code
                             
                         # Receive binary_code from the other Raspberry Pi
