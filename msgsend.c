@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <gpiod.h>
-#include <unistd.h>  
+#include <unistd.h>
 
 char result[3000] = {'1', '0', '1', '0', '1', '0', '1', '0', '1', '0', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1'};
 int counter = 20;
@@ -26,8 +26,6 @@ void int2bin(unsigned integer, int n)
     }
 }
 
-int pos = 0;
-
 int main()
 {
     // Initialize libgpiod
@@ -41,12 +39,27 @@ int main()
     }
 
     line = gpiod_chip_get_line(chip, 4);
+    if (!line)
+    {
+        perror("Error getting GPIO line");
+        gpiod_chip_close(chip);
+        return -1;
+    }
+
+    // Configure the GPIO line
+    if (gpiod_line_request_output(line, "led-control", 0) < 0)
+    {
+        perror("Error configuring GPIO line");
+        gpiod_line_release(line);
+        gpiod_chip_close(chip);
+        return -1;
+    }
 
     // Read message
     char msg[3000];
     int len, k, length;
 
-    printf("\n Enter the Message: ");
+    printf("\nEnter the Message: ");
     scanf("%[^'\n']", msg);
 
     len = strlen(msg);
@@ -61,7 +74,8 @@ int main()
 
     length = strlen(result);
 
-    while (pos != length)
+    // Toggle the LED based on binary data
+    for (int pos = 0; pos < length; pos++)
     {
         if (result[pos] == '1')
         {
@@ -73,8 +87,6 @@ int main()
         {
             gpiod_line_set_value(line, 0); // Set GPIO line to LOW directly
         }
-
-        pos++;
     }
 
     // Cleanup libgpiod
