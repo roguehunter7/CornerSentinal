@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <malloc.h>
 #include <sys/time.h>
 #include <string.h>
 #include <gpiod.h>
