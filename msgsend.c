@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <malloc.h>
 #include <string.h>
 #include <gpiod.h>
 #include <sys/time.h>
@@ -39,7 +40,7 @@ int main()
         return -1;
     }
 
-    line = gpiod_chip_get_line(chip, 17);
+    line = gpiod_chip_get_line(chip, 4);
     if (!line)
     {
         perror("Error getting GPIO line");
@@ -77,20 +78,11 @@ int main()
         }
         gettimeofday(&tval_before, NULL);
         
-        if (result[pos]=='1')
-        {
-            gpiod_line_set_value(line, 1);// Set GPIO line to HIGH
-            pos++;
-            }
-            
-        else if(result[pos]=='0'){
-            gpiod_line_set_value(line, 0); // Set GPIO line to LOW
-            pos++;
-            }
+        gpiod_line_set_value(line, result[pos] == '1' ? 1 : 0);
+        
     }
 
     // Cleanup libgpiod
-    gpiod_line_set_value(line, 0); 
     gpiod_line_release(line);
     gpiod_chip_close(chip);
 
