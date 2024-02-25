@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <gpiod.h>
+#include <unistd.h>  
 
 char result[3000] = {'1', '0', '1', '0', '1', '0', '1', '0', '1', '0', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1'};
 int counter = 20;
