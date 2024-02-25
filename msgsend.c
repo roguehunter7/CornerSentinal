@@ -40,7 +40,7 @@ int main()
         return -1;
     }
 
-    line = gpiod_chip_get_line(chip, 4);
+    line = gpiod_chip_get_line(chip, 17);
     if (!line)
     {
         perror("Error getting GPIO line");
