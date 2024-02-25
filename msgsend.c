@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <malloc.h>
 #include <string.h>
 #include <gpiod.h>
 #include <sys/time.h>
@@ -25,23 +26,7 @@ void int2bin(unsigned integer, int n)
         counter++;
     }
 }
-
-void delayMicroseconds(int microseconds)
-{
-    struct timeval tval_before, tval_after, tval_result;
-    gettimeofday(&tval_before, NULL);
-
-    while (1)
-    {
-        gettimeofday(&tval_after, NULL);
-        timersub(&tval_after, &tval_before, &tval_result);
-        double time_elapsed = (double)tval_result.tv_sec + ((double)tval_result.tv_usec / 1000000.0);
-
-        if (time_elapsed >= microseconds / 1000000.0)
-            break;
-    }
-}
-
+int pos = 0;
 int main()
 {
     // Initialize libgpiod
@@ -89,22 +74,31 @@ int main()
     }
 
     length = strlen(result);
-
-    // Toggle the LED based on binary data using 1 kHz bit rate
-    for (int pos = 0; pos < length; pos++)
+    gettimeofday(&tval_before, NULL);
+    while(pos!=length)
     {
-        if (result[pos] == '1')
+        gettimeofday(&tval_after, NULL);
+        timersub(&tval_after, &tval_before, &tval_result);
+        double time_elapsed = (double)tval_result.tv_sec + ((double)tval_result.tv_usec/1000000.0f);
+        
+        while(time_elapsed < 0.001)
         {
-            gpiod_line_set_value(line, 1); // Set GPIO line to HIGH
-            delayMicroseconds(500);        // Hold HIGH for 0.5 ms (adjust as needed)
+            gettimeofday(&tval_after, NULL);
+            timersub(&tval_after, &tval_before, &tval_result);
+            time_elapsed = (double)tval_result.tv_sec + ((double)tval_result.tv_usec/1000000.0f);
+        }
+        gettimeofday(&tval_before, NULL);
+        
+        if (result[pos]=='1')
+        {
+            gpiod_line_set_value(line, 1);// Set GPIO line to HIGH
+            pos++;
+            }
+            
+        else if(result[pos]=='0'){
             gpiod_line_set_value(line, 0); // Set GPIO line to LOW
-            delayMicroseconds(500);        // Hold LOW for 0.5 ms (adjust as needed)
-        }
-        else if (result[pos] == '0')
-        {
-            gpiod_line_set_value(line, 0); // Set GPIO line to LOW directly
-            delayMicroseconds(500);        // Hold LOW for 0.5 ms (adjust as needed)
-        }
+            pos++;
+            }
     }
 
     // Cleanup libgpiod
