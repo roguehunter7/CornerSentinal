@@ -9,6 +9,7 @@
 #define DELAY_THRESHOLD 0.001
 
 char result[RESULT_SIZE] = {'1', '0', '1', '0', '1', '0', '1', '0', '1', '0', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1'};
+
 int counter = 20;
 
 void chartobin(char c)
