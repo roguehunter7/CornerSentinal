@@ -88,7 +88,6 @@ int main()
             gpiod_line_set_value(line, 0); // Set GPIO line to LOW
             pos++;
             }
-        gpiod_line_set_value(line, 0); // Set GPIO line to LOW  
     }
 
     // Cleanup libgpiod
