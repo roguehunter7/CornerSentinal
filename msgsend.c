@@ -91,7 +91,6 @@ int main()
     }
 
     // Cleanup libgpiod
-    gpiod_line_set_value(line, 0); // Set GPIO line to LOW
     gpiod_line_release(line);
     gpiod_chip_close(chip);
 
