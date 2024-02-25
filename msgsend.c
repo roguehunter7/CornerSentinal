@@ -55,7 +55,7 @@ int main()
         gpiod_chip_close(chip);
         return -1;
     }
-
+    struct timeval tval_before, tval_after, tval_result;
     // Read message
     char msg[3000];
     int len, k, length;
