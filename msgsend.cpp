@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/time.h>
-#include <gpiod/gpiod.h>
+#include <gpiod.h>
 
 #define GPIO_CHIP_NAME "gpiochip0"  // Replace if using a different chip
 #define GPIO_LINE_OFFSET 0  // Replace if using a different line
