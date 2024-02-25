@@ -1,11 +1,11 @@
-# Common Script for RPi1 and RPi2
 import socket
 from collections import defaultdict
 import cv2
 import numpy as np
-from time import time
+from time import time, sleep
+from threading import Thread
 from ultralytics import YOLO
-from send import *
+from send import transmit_binary_data
 
 # Function to calculate Euclidean distance
 def calculate_distance(point1, point2):
@@ -55,6 +55,27 @@ def display_warning_message(frame, binary_code):
     warning_message = f"Warning: {binary_code}"
     cv2.putText(frame, warning_message, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
 
+# Function to handle LiFi transmission in a separate thread
+def lifi_transmission_thread():
+    while True:
+        if recv_binary_code_queue.qsize() > 0:
+            received_binary_code = recv_binary_code_queue.get()
+            transmit_binary_data(received_binary_code)
+        sleep(0.1)  # Adjust sleep time based on your requirements
+
+# Function to transmit binary data
+def transmit_binary_data(binary_code):
+    # Placeholder implementation
+    print(f"Transmitting Binary Code: {binary_code}")
+
+# Function to receive binary data
+def receive_binary_data(client_socket):
+    return client_socket.recv(1024).decode()
+
+# Function to send binary data
+def send_binary_data(client_socket, binary_code):
+    client_socket.sendall(binary_code.encode())
+
 # Load the YOLOv8 model
 model = YOLO('train3/weights/best.onnx')
 
@@ -85,14 +106,21 @@ server_address = ('192.168.1.1', 8888)  # IP of RPi1
 server_socket.bind(server_address)
 server_socket.listen()
 
-
 connection, client_address = server_socket.accept()
-
 
 # Client socket initialization for connecting to RPi2
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client_address = ('192.168.1.2', 8888)  # IP of RPi2
 
+# Create a queue for communication between the main thread and LiFi transmission thread
+recv_binary_code_queue = queue.Queue()
+
+# Start the LiFi transmission thread
+lifi_transmission_thread = Thread(target=lifi_transmission_thread)
+lifi_transmission_thread.daemon = True
+lifi_transmission_thread.start()
+
+# Connected flag for client socket
 connected = False
 while not connected:
     try:
@@ -102,14 +130,6 @@ while not connected:
     except ConnectionRefusedError:
         print("Connection to RPi2 refused. Retrying...")
         time.sleep(1)
-
-# Function to receive binary data
-def receive_binary_data(client_socket):
-    return client_socket.recv(1024).decode()
-
-# Function to send binary data
-def send_binary_data(client_socket, binary_code):
-    client_socket.sendall(binary_code.encode())
 
 while cap.isOpened():
     success, frame = cap.read()
@@ -148,13 +168,12 @@ while cap.isOpened():
 
                         # Transmit only if the binary code is different from the previous one
                         if binary_code != prev_binary_code:
-                            send_binary_data(client_socket,binary_code)
+                            send_binary_data(client_socket, binary_code)
                             prev_binary_code = binary_code
                             
                         # Receive binary_code from the other Raspberry Pi
-                        recv_binary_code = receive_binary_data
-                        # Trigger transmit_binary_data function (assuming it's defined in the send module)
-                        transmit_binary_data(str(recv_binary_code))
+                        recv_binary_code = receive_binary_data(client_socket)
+                        recv_binary_code_queue.put(recv_binary_code)
                         
                         display_warning_message(annotated_frame, binary_code)
                         cv2.putText(annotated_frame, f"Speed: {speed:.2f} km/h", (int(x), int(y) - 10),
