@@ -5,7 +5,12 @@ import numpy as np
 from time import time, sleep
 from threading import Thread
 from ultralytics import YOLO
-from send import transmit_binary_data
+from gpiozero import LED
+
+
+# Define GPIO pin for LED
+LED_PIN = 4  # Replace with the actual GPIO pin number connected to the LED
+led = LED(LED_PIN)
 
 # Function to calculate Euclidean distance
 def calculate_distance(point1, point2):
@@ -63,10 +68,27 @@ def lifi_transmission_thread():
             transmit_binary_data(received_binary_code)
         sleep(0.1)  # Adjust sleep time based on your requirements
 
-# Function to transmit binary data
-def transmit_binary_data(binary_code):
-    # Placeholder implementation
-    print(f"Transmitting Binary Code: {binary_code}")
+def transmit_binary_data(binary_data):
+    # Start bit
+    led.on()
+    time.sleep(0.1)
+
+    # Transmit each bit
+    print('Binary Data to be transmitted:',binary_data[1:8])
+    for bit in binary_data[1:8]:
+        if bit == '0':
+            print(bit)
+            led.off()
+        else:
+            led.on()
+            print(bit)
+        time.sleep(0.05)
+
+    # Stop bit
+    led.on()
+    time.sleep(0.1)
+    led.off()
+
 
 # Function to receive binary data
 def receive_binary_data(client_socket):
