@@ -42,8 +42,9 @@ int main() {
     wiremsg lifiWireMsg = {.preamble = {'1', '0', '1', '0', '1', '0', '1', '0', '1', '0', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1'}};
 
     struct gpiod_chip *chip;
-    struct gpiod_line *line;
-    unsigned int line_offset = 4;  // GPIO pin 4
+    struct gpiod_line_bulk lines;
+    struct gpiod_line_event event;
+    unsigned int line_offset = 4;
     const char *consumer = "lifi_consumer";
 
     chip = gpiod_chip_open("/dev/gpiochip0");
@@ -52,17 +53,11 @@ int main() {
         return -1;
     }
 
-    line = gpiod_chip_get_line(chip, line_offset);
-    if (!line) {
-        perror("Error getting GPIO line");
-        gpiod_chip_close(chip);
-        return -1;
-    }
-
-    gpiod_line_request_output(line, consumer, 0);
+    gpiod_chip_get_lines(chip, line_offset, &lines);
+    gpiod_line_request_output_lines_bulk(&lines, consumer, 0);
 
     while (1) {
-        printf("Please input the message to send: ");
+        printf(" Please input the message to send: ");
         fgets(input_buffer, sizeof(input_buffer), stdin);
         int msg_len = strlen(input_buffer);
         setHeaderPayloadSizeField(msg_len, &lifiWireMsg);
@@ -95,12 +90,16 @@ int main() {
                 bitToSend = lifiWireMsg.payload[bitPos - sizeof(lifiWireMsg.preamble) - sizeof(lifiWireMsg.payload_size)];
             }
 
-            gpiod_line_set_value(line, (bitToSend == '1'));
+            if (bitToSend == '1') {
+                gpiod_line_set_value_bulk(&lines, 1);
+            } else {
+                gpiod_line_set_value_bulk(&lines, 0);
+            }
 
-            bitPos++;
+            bitToSend++;
         }
     }
-
+     
     gpiod_line_release(line);
     gpiod_chip_close(chip);
     return 0;
