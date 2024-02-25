@@ -134,14 +134,6 @@ connection, client_address = server_socket.accept()
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client_address = ('192.168.1.2', 8888)  # IP of RPi2
 
-# Create a queue for communication between the main thread and LiFi transmission thread
-recv_binary_code_queue = queue.Queue()
-
-# Start the LiFi transmission thread
-lifi_transmission_thread = Thread(target=lifi_transmission_thread)
-lifi_transmission_thread.daemon = True
-lifi_transmission_thread.start()
-
 # Connected flag for client socket
 connected = False
 while not connected:
@@ -152,6 +144,14 @@ while not connected:
     except ConnectionRefusedError:
         print("Connection to RPi2 refused. Retrying...")
         time.sleep(1)
+
+# Create a queue for communication between the main thread and LiFi transmission thread
+recv_binary_code_queue = queue.Queue()
+
+# Start the LiFi transmission thread
+lifi_transmission_thread = Thread(target=lifi_transmission_thread)
+lifi_transmission_thread.daemon = True
+lifi_transmission_thread.start()
 
 while cap.isOpened():
     success, frame = cap.read()
