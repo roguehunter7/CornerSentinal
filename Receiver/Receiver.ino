@@ -49,7 +49,7 @@ ISR(TIMER1_COMPA_vect)
 
   Serial.println(voltage);
 
-  if (voltage>=0.5) 
+  if (voltage>=1) 
   {
     data="1";
     Serial.println("1");

@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <gpiod.h>
-#include <sys/time.h>
+#include <unistd.h>
 
 char result[3000] = {'1', '0', '1', '0', '1', '0', '1', '0', '1', '0', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1'};
 int counter = 20;
@@ -74,34 +74,18 @@ int main()
 
     length = strlen(result);
 
-    // Toggle the LED based on binary data using original timing logic
-    struct timeval tval_before, tval_after, tval_result;
-    gettimeofday(&tval_before, NULL);
-
+    // Toggle the LED based on binary data
     for (int pos = 0; pos < length; pos++)
     {
-        gettimeofday(&tval_after, NULL);
-        timersub(&tval_after, &tval_before, &tval_result);
-        double time_elapsed = (double)tval_result.tv_sec + ((double)tval_result.tv_usec / 1000000.0);
-
-        while (time_elapsed < 0.001) // Adjust as needed
-        {
-            gettimeofday(&tval_after, NULL);
-            timersub(&tval_after, &tval_before, &tval_result);
-            time_elapsed = (double)tval_result.tv_sec + ((double)tval_result.tv_usec / 1000000.0);
-        }
-
-        gettimeofday(&tval_before, NULL);
-
         if (result[pos] == '1')
         {
             gpiod_line_set_value(line, 1); // Set GPIO line to HIGH
-            pos++;
+            usleep(100000);                // Sleep for 100 ms (adjust as needed)
+            gpiod_line_set_value(line, 0); // Set GPIO line to LOW
         }
         else if (result[pos] == '0')
         {
-            gpiod_line_set_value(line, 0); // Set GPIO line to LOW
-            pos++;
+            gpiod_line_set_value(line, 0); // Set GPIO line to LOW directly
         }
     }
 
