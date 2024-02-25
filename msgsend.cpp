@@ -3,6 +3,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include <gpiod.h>
+#include <unistd.h> 
 
 #define GPIO_CHIP_NAME "gpiochip0"  // Replace if using a different chip
 #define GPIO_LINE_OFFSET 0  // Replace if using a different line
@@ -46,27 +47,26 @@ int main() {
     return -1;
   }
 
-  ret = gpiod_line_request(line, "Sending data", 0);
+  // Request the GPIO line (output mode)
+  struct gpiod_line_request_config config = {
+      .consumer = "Sending data",
+      .request_type = GPIOD_LINE_REQUEST_DIRECTION_OUTPUT,
+      .flags = 0,
+  };
+  ret = gpiod_line_request(line, &config, 0);
   if (ret < 0) {
     perror("gpiod_line_request");
-    gpiod_line_put(line);
+    gpiod_line_put(line); // Release the line if request failed
     gpiod_chip_close(chip);
     return -1;
   }
 
-  ret = gpiod_line_set_direction(line, GPIOD_LINE_REQ_DIR_OUT);
-  if (ret < 0) {
-    perror("gpiod_line_set_direction");
-    gpiod_line_release(line);
-    gpiod_chip_close(chip);
-    return -1;
-  }
 
   // --- Message Input and Encoding ---
   char msg[3000];
   int len, k;
 
-  printf("\n Enter the Message: ");
+  printf("\nEnter the Message: ");
   scanf("%[^'\n']", msg); 
 
   len = strlen(msg);
