@@ -26,7 +26,7 @@ void int2bin(unsigned integer, int n)
     }
     
 }
-
+#define TARGET_BIT_PERIOD_MS 4
 int pos = 0;
 int main()
 {
@@ -73,7 +73,7 @@ int main()
         {
             chartobin(msg[k]);            
         }
-        
+
     length = strlen(result);
     gettimeofday(&tval_before, NULL);
     while(pos!=length)
@@ -82,7 +82,7 @@ int main()
         timersub(&tval_after, &tval_before, &tval_result);
         double time_elapsed = (double)tval_result.tv_sec + ((double)tval_result.tv_usec/1000000.0f);
         
-        while(time_elapsed < 0.001)
+        while(time_elapsed < (TARGET_BIT_PERIOD_MS / 1000.0))
         {
             gettimeofday(&tval_after, NULL);
             timersub(&tval_after, &tval_before, &tval_result);
