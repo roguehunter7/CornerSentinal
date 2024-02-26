@@ -73,7 +73,7 @@ int main()
         {
             chartobin(msg[k]);            
         }
-    
+        
     length = strlen(result);
     gettimeofday(&tval_before, NULL);
     while(pos!=length)
