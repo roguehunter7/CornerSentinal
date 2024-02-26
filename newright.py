@@ -81,7 +81,11 @@ s_receive.connect(server_address_receive)
 
 server_address_send = ('192.168.1.1', 8000)  # Choose a different port for sending
 s_send = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s_send.connect(server_address_send)
+try:
+    s_send.connect(server_address_send)
+except Exception as e:
+    print(f"Error connecting to RPi2: {e}")
+
 
 # Thread to receive binary data
 def receive_thread_function(client_socket_receive):
