@@ -74,10 +74,7 @@ stationary_timers = defaultdict(float)
 # Counter to keep track of frames
 frame_counter = 0
 
-# Placeholder for the previous frame and points for optical flow
-prev_frame = None
-prev_pts = None
-prev_binary_code = None
+
 
 # Server socket initialization on RPi1 for receiving
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -98,21 +95,23 @@ s_send.listen()
 s_send_client, _ = s_send.accept()
 
 # Thread to receive binary data
-def receive_thread_function(client_socket_receive, client_socket_send):
+def receive_thread_function(client_socket_receive):
     while True:
         recv_binary_code = client_socket_receive.recv(1024).decode()
         transmit_binary_data(recv_binary_code)
-        sleep(0.01)
 
 # Function to send binary data
 def send_binary_data(client_socket, binary_code):
     client_socket.sendall(binary_code.encode())
 
 # Thread to send binary data
-def send_thread_function(client_socket_send, frame_counter, client_socket_receive):
+def send_thread_function(client_socket_send, frame_counter):
+    # Placeholder for the previous frame and points for optical flow
+    prev_frame = None
+    prev_pts = None
+    prev_binary_code = None
     while cap.isOpened():
         success, frame = cap.read()
-
         if success:
             frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -179,10 +178,10 @@ def send_thread_function(client_socket_send, frame_counter, client_socket_receiv
             break
 
 # Start threads for receiving and sending
-receive_thread = Thread(target=receive_thread_function, args=(s_client, s_send_client))
+receive_thread = Thread(target=receive_thread_function, args=(s_client,))
 receive_thread.start()
 
-send_thread = Thread(target=send_thread_function, args=(s_send_client, frame_counter, s_client))
+send_thread = Thread(target=send_thread_function, args=(s_send_client, frame_counter))
 send_thread.start()
 
 # Wait for the threads to finish (if needed)

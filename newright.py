@@ -74,33 +74,31 @@ stationary_timers = defaultdict(float)
 # Counter to keep track of frames
 frame_counter = 0
 
-# Placeholder for the previous frame and points for optical flow
-prev_frame = None
-prev_pts = None
-prev_binary_code = None
-
 # Client socket initialization on RPi2
-server_address_receive = ('192.168.1.1', 8888)  # IP of RPi1
+server_address_receive = ('192.168.1.1', 8889)  # IP of RPi1
 s_receive = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s_receive.connect(server_address_receive)
 
-server_address_send = ('192.168.1.1', 8889)  # Choose a different port for sending
+server_address_send = ('192.168.1.1', 8888)  # Choose a different port for sending
 s_send = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s_send.connect(server_address_send)
 
 # Thread to receive binary data
-def receive_thread_function(client_socket_receive, client_socket_send):
+def receive_thread_function(client_socket_receive):
     while True:
         recv_binary_code = client_socket_receive.recv(1024).decode()
         transmit_binary_data(recv_binary_code)
-        sleep(0.01)
 
 # Function to send binary data
 def send_binary_data(client_socket, binary_code):
     client_socket.sendall(binary_code.encode())
     
 # Thread to send binary data
-def send_thread_function(client_socket_send, frame_counter, client_socket_receive):
+def send_thread_function(client_socket_send, frame_counter):
+    # Placeholder for the previous frame and points for optical flow
+    prev_frame = None
+    prev_pts = None
+    prev_binary_code = None
     while cap.isOpened():
         success, frame = cap.read()
         
@@ -170,10 +168,10 @@ def send_thread_function(client_socket_send, frame_counter, client_socket_receiv
             break
 
 # Start threads for receiving and sending
-receive_thread = Thread(target=receive_thread_function, args=(s_receive, s_send))
+receive_thread = Thread(target=receive_thread_function, args=(s_receive))
 receive_thread.start()
 
-send_thread = Thread(target=send_thread_function, args=(s_send, frame_counter, s_receive))
+send_thread = Thread(target=send_thread_function, args=(s_send, frame_counter))
 send_thread.start()
 
 # Wait for the threads to finish (if needed)
