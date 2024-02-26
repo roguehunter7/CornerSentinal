@@ -47,9 +47,17 @@ int main()
         gpiod_chip_close(chip);
         return -1;
     }
+      // Configure the GPIO line
+    if (gpiod_line_request_output(line, "led-control", 0) < 0)
+    {
+        perror("Error configuring GPIO line");
+        gpiod_line_release(line);
+        gpiod_chip_close(chip);
+        return -1;
+    }
     struct timeval tval_before, tval_after, tval_result;
     // Read message
-    char msg[3000]; //gibt die Länge vor wie viele Zeichen man für die Nachricht benutzen darf
+    char msg[3000]; 
         int len, k, length;
        
         printf("\n Enter the Message: ");
@@ -58,12 +66,12 @@ int main()
         len=strlen(msg);
         
         
-        int2bin(len*8, 16); //Mal 8, weil ein Byte 8 Bit sind   
+        int2bin(len*8, 16); 
         printf ("Frame Header (Synchro and Textlength = %s\n", result);
         
         for(k=0;k<len;k++)
         {
-                chartobin(msg[k]);            
+            chartobin(msg[k]);            
         }
     
     length = strlen(result);
