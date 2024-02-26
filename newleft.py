@@ -78,23 +78,24 @@ frame_counter = 0
 
 # Server socket initialization on RPi1 for receiving
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server_address = ('192.168.1.1', 8888)  # IP of RPi1
+server_address = ('', 8888)  # IP of RPi1
 s.bind(server_address)
 s.listen()
-print("Receiver socket connected")
 
 # Accept connection for receiving
 s_client, _ = s.accept()
+print("Receiver socket connected")
+
 
 # Server socket initialization on RPi1 for sending
 s_send = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server_send_address = ('192.168.1.1', 8889)  # Choose a different port for sending
+server_send_address = ('', 8889)  # Choose a different port for sending
 s_send.bind(server_send_address)
 s_send.listen()
-print("Sender socket connected")
 
 # Accept connection for sending
 s_send_client, _ = s_send.accept()
+print("Sender socket connected")
 
 # Thread to receive binary data
 def receive_thread_function(client_socket_receive):
