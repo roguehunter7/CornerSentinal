@@ -80,7 +80,7 @@ frame_counter = 0
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_address = ('', 8888)  # IP of RPi1
 s.bind(server_address)
-s.listen()
+s.listen(1)
 
 # Accept connection for receiving
 s_client, _ = s.accept()
@@ -91,7 +91,7 @@ print("Receiver socket connected")
 s_send = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_send_address = ('', 8000)  # Choose a different port for sending
 s_send.bind(server_send_address)
-s_send.listen()
+s_send.listen(1)
 
 # Accept connection for sending
 s_send_client, _ = s_send.accept()
