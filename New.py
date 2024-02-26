@@ -6,6 +6,7 @@ from ultralytics import YOLO
 import tkinter as tk
 from PIL import Image, ImageTk
 import numpy as np
+from send import *
 
 # Load the YOLOv8 model
 model = YOLO('train3/weights/best.onnx')
@@ -249,7 +250,10 @@ while cap.isOpened():
                         cv2.putText(annotated_frame, f"Speed: {speed:.2f} km/h", (int(x), int(y) - 10),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
                         roi = frame_gray[int(y):int(y + h), int(x):int(x + w)]
- 
+                        if binary_code != prev_binary_code:
+                                transmit_binary_data(binary_code)
+                                prev_binary_code = binary_code
+
                         if prev_frame is not None and prev_pts is not None:
                             prev_frame_resized = cv2.resize(prev_frame, (roi.shape[1], roi.shape[0]))
                             flow = cv2.calcOpticalFlowPyrLK(prev_frame_resized, roi, prev_pts, None,
