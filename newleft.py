@@ -92,7 +92,7 @@ s_send = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_send_address = ('', 8000)  # Choose a different port for sending
 s_send.bind(server_send_address)
 s_send.listen(1)
-
+print("Sender socket connected")
 # Accept connection for sending
 s_send_client, _ = s_send.accept()
 print("Sender socket connected")
