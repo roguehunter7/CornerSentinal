@@ -79,7 +79,7 @@ server_address_receive = ('192.168.1.1', 8888)  # IP of RPi1
 s_receive = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s_receive.connect(server_address_receive)
 
-server_address_send = ('192.168.1.1', 8889)  # Choose a different port for sending
+server_address_send = ('192.168.1.1', 8000)  # Choose a different port for sending
 s_send = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s_send.connect(server_address_send)
 

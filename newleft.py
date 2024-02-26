@@ -89,7 +89,7 @@ print("Receiver socket connected")
 
 # Server socket initialization on RPi1 for sending
 s_send = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server_send_address = ('', 8889)  # Choose a different port for sending
+server_send_address = ('', 8000)  # Choose a different port for sending
 s_send.bind(server_send_address)
 s_send.listen()
 
