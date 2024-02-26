@@ -57,7 +57,7 @@ def display_warning_message(frame, binary_code):
     cv2.putText(frame, warning_message, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
 
 # Load the YOLOv8 model
-model = YOLO('train3/weights/best.onnx')
+model = YOLO('train3/weights/best.onnx', task='detect')
 
 # Open the video file
 video_path = "test_images/rightside.mp4"
@@ -93,7 +93,7 @@ def receive_thread_function(client_socket):
         transmit_binary_data(recv_binary_code)
         sleep(0.01)
         
-receive_thread = Thread(target=receive_thread_function, args=(s))
+receive_thread = Thread(target=receive_thread_function, args=(s,))
 receive_thread.start()
 
 # Function to send binary data
@@ -169,7 +169,7 @@ def send_thread_function(client_socket,frame_counter):
         else:
             break
 
-send_thread = Thread(target=send_thread_function, args=(s,))
+send_thread = Thread(target=send_thread_function, args=(s, frame_counter))
 send_thread.start()
 
 # Wait for the threads to finish (if needed)
@@ -179,6 +179,6 @@ receive_thread.join()
 # Release resources
 cap.release()
 # Closing the server socket
-s.close()
+s[0].close()
 
 cv2.destroyAllWindows()
