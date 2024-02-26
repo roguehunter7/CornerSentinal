@@ -27,6 +27,24 @@ void int2bin(unsigned integer, int n)
     
 }
 #define TARGET_BIT_PERIOD_MS 4
+// CRC Lookup Table
+unsigned int crc32_table[256];
+
+// Initialize CRC Lookup Table
+void init_crc32_table()
+{
+    for (unsigned int i = 0; i < 256; i++)
+    {
+        unsigned int crc = i;
+        for (int j = 0; j < 8; j++)
+        {
+            crc = (crc & 1) ? (crc >> 1) ^ 0xEDB88320 : crc >> 1;
+        }
+        crc32_table[i] = crc;
+    }
+}
+
+// Calculate CRC-32 for a given buffer
 unsigned int calculate_crc32(const char *buffer, size_t length)
 {
     unsigned int crc = 0xFFFFFFFF;
@@ -65,7 +83,7 @@ int main()
         return -1;
     }
     struct timeval tval_before, tval_after, tval_result;
-
+    init_crc32_table();
     // Read message
     char msg[3000]; 
         int len, k, length;
