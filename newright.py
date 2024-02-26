@@ -1,4 +1,3 @@
-# Common Script for RPi1 and RPi2
 import socket
 from collections import defaultdict
 import cv2
@@ -81,26 +80,27 @@ prev_pts = None
 prev_binary_code = None
 
 # Client socket initialization on RPi2
-server_address = ('192.168.1.1', 8888)  # IP of RPi1
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect(server_address)
+server_address_receive = ('192.168.1.1', 8888)  # IP of RPi1
+s_receive = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s_receive.connect(server_address_receive)
+
+server_address_send = ('192.168.1.1', 8889)  # Choose a different port for sending
+s_send = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s_send.connect(server_address_send)
 
 # Thread to receive binary data
-
-def receive_thread_function(client_socket):
+def receive_thread_function(client_socket_receive, client_socket_send):
     while True:
-        recv_binary_code = client_socket.recv(1024).decode()
+        recv_binary_code = client_socket_receive.recv(1024).decode()
         transmit_binary_data(recv_binary_code)
         sleep(0.01)
-        
-receive_thread = Thread(target=receive_thread_function, args=(s,))
-receive_thread.start()
 
 # Function to send binary data
-def send_binary_data(client_address, binary_code):
-    client_address.sendall(binary_code.encode())
-
-def send_thread_function(client_socket,frame_counter):
+def send_binary_data(client_socket, binary_code):
+    client_socket.sendall(binary_code.encode())
+    
+# Thread to send binary data
+def send_thread_function(client_socket_send, frame_counter, client_socket_receive):
     while cap.isOpened():
         success, frame = cap.read()
         
@@ -138,7 +138,7 @@ def send_thread_function(client_socket,frame_counter):
 
                             # Transmit only if the binary code is different from the previous one
                             if binary_code != prev_binary_code:
-                                send_binary_data(client_socket, binary_code)
+                                send_binary_data(client_socket_send, binary_code)
                                 prev_binary_code = binary_code
                             
                             display_warning_message(annotated_frame, binary_code)
@@ -169,7 +169,11 @@ def send_thread_function(client_socket,frame_counter):
         else:
             break
 
-send_thread = Thread(target=send_thread_function, args=(s, frame_counter))
+# Start threads for receiving and sending
+receive_thread = Thread(target=receive_thread_function, args=(s_receive, s_send))
+receive_thread.start()
+
+send_thread = Thread(target=send_thread_function, args=(s_send, frame_counter, s_receive))
 send_thread.start()
 
 # Wait for the threads to finish (if needed)
@@ -178,7 +182,8 @@ receive_thread.join()
 
 # Release resources
 cap.release()
-# Closing the server socket
-s[0].close()
+# Closing the client sockets
+s_receive.close()
+s_send.close()
 
 cv2.destroyAllWindows()

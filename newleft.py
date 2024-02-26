@@ -1,4 +1,3 @@
-# Common Script for RPi1 and RPi2
 import socket
 from collections import defaultdict
 import cv2
@@ -80,36 +79,43 @@ prev_frame = None
 prev_pts = None
 prev_binary_code = None
 
-# Server socket initialization on RPi1
-s2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# Server socket initialization on RPi1 for receiving
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_address = ('192.168.1.1', 8888)  # IP of RPi1
-s2.bind(server_address)
-s2.listen()
+s.bind(server_address)
+s.listen()
 
-s = s2.accept()
+# Accept connection for receiving
+s_client, _ = s.accept()
+
+# Server socket initialization on RPi1 for sending
+s_send = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server_send_address = ('192.168.1.1', 8889)  # Choose a different port for sending
+s_send.bind(server_send_address)
+s_send.listen()
+
+# Accept connection for sending
+s_send_client, _ = s_send.accept()
 
 # Thread to receive binary data
-
-def receive_thread_function(client_socket):
+def receive_thread_function(client_socket_receive, client_socket_send):
     while True:
-        recv_binary_code = client_socket.recv(1024).decode()
+        recv_binary_code = client_socket_receive.recv(1024).decode()
         transmit_binary_data(recv_binary_code)
         sleep(0.01)
-        
-receive_thread = Thread(target=receive_thread_function, args=(s,))
-receive_thread.start()
 
 # Function to send binary data
-def send_binary_data(client_address, binary_code):
-    client_address.sendall(binary_code.encode())
+def send_binary_data(client_socket, binary_code):
+    client_socket.sendall(binary_code.encode())
 
-def send_thread_function(client_socket,frame_counter):
+# Thread to send binary data
+def send_thread_function(client_socket_send, frame_counter, client_socket_receive):
     while cap.isOpened():
         success, frame = cap.read()
-        
+
         if success:
             frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            
+
             # Check if YOLO inference should be performed on this frame
             if frame_counter % 2 == 0:
                 results = model.track(frame, persist=True, tracker='botsort.yaml', imgsz=(320, 320), int8=True, conf=0.15)
@@ -141,14 +147,14 @@ def send_thread_function(client_socket,frame_counter):
 
                             # Transmit only if the binary code is different from the previous one
                             if binary_code != prev_binary_code:
-                                send_binary_data(client_socket, binary_code)
+                                send_binary_data(client_socket_send, binary_code)
                                 prev_binary_code = binary_code
-                            
+
                             display_warning_message(annotated_frame, binary_code)
                             cv2.putText(annotated_frame, f"Speed: {speed:.2f} km/h", (int(x), int(y) - 10),
                                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
                             roi = frame_gray[int(y):int(y + h), int(x):int(x + w)]
-    
+
                             if prev_frame is not None and prev_pts is not None:
                                 prev_frame_resized = cv2.resize(prev_frame, (roi.shape[1], roi.shape[0]))
                                 flow = cv2.calcOpticalFlowPyrLK(prev_frame_resized, roi, prev_pts, None,
@@ -172,7 +178,11 @@ def send_thread_function(client_socket,frame_counter):
         else:
             break
 
-send_thread = Thread(target=send_thread_function, args=(s, frame_counter))
+# Start threads for receiving and sending
+receive_thread = Thread(target=receive_thread_function, args=(s_client, s_send_client))
+receive_thread.start()
+
+send_thread = Thread(target=send_thread_function, args=(s_send_client, frame_counter, s_client))
 send_thread.start()
 
 # Wait for the threads to finish (if needed)
@@ -181,7 +191,8 @@ receive_thread.join()
 
 # Release resources
 cap.release()
-# Closing the server socket
-s[0].close()
+# Closing the server sockets
+s_client.close()
+s_send_client.close()
 
 cv2.destroyAllWindows()
