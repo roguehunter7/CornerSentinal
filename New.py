@@ -151,7 +151,7 @@ def calculate_distance(point1, point2):
 def calculate_speed(distances, factor_km, latency_fps):
     if len(distances) <= 1:
         return 0.0
-    average_speed = (np.mean(distances) * factor_km) / latency_fps
+    average_speed = (np.mean(distances) * factor_km) / latency_fps * 10
     return average_speed
 
 # Function to generate 9-bit binary code based on conditions
