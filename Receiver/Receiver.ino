@@ -19,7 +19,7 @@ void setup() {
   TCCR1B = 0;// same for TCCR1B
   TCNT1  = 0;//initialize counter value to 0;
   // set timer count for 1khz increments
-  OCR1A = 2001;// = (16*10^6) / (1000*8) - 1        OCR1A = 2001 for 1kHz;
+  OCR1A = 7999;// = (16*10^6) / (250*8) - 1        OCR1A = 2001 for 1kHz; ORCIA = 7999 for 250Hz
   // turn on CTC mode
   TCCR1B |= (1 << WGM12);
   // Set CS11 bit for 8 prescaler
@@ -47,9 +47,9 @@ ISR(TIMER1_COMPA_vect)
   int sensorValue = analogRead(A0);
   float voltage = sensorValue * (5.0 / 1023.0);
 
-  //Serial.println(sensorValue);
+  //Serial.println(voltage);
 
-  if (sensorValue<30) 
+  if (voltage > 1) 
   {
     data="1";
     //Serial.println("1");

@@ -27,6 +27,15 @@ void int2bin(unsigned integer, int n)
     
 }
 #define TARGET_BIT_PERIOD_MS 4
+unsigned int calculate_crc32(const char *buffer, size_t length)
+{
+    unsigned int crc = 0xFFFFFFFF;
+    for (size_t i = 0; i < length; i++)
+    {
+        crc = (crc >> 8) ^ crc32_table[(crc & 0xFF) ^ buffer[i]];
+    }
+    return crc ^ 0xFFFFFFFF;
+}
 int pos = 0;
 int main()
 {
@@ -56,6 +65,7 @@ int main()
         return -1;
     }
     struct timeval tval_before, tval_after, tval_result;
+
     // Read message
     char msg[3000]; 
         int len, k, length;
@@ -64,7 +74,9 @@ int main()
         scanf("%[^'\n']",msg);
         
         len=strlen(msg);
-        
+        // Calculate CRC-32 for the message
+        unsigned int crc32 = calculate_crc32(msg, len);
+
         
         int2bin(len*8, 16); 
         printf ("Frame Header (Synchro and Textlength = %s\n", result);
@@ -73,6 +85,9 @@ int main()
         {
             chartobin(msg[k]);            
         }
+        // Add CRC-32 to the binary data
+        int2bin(crc32, 32);
+        printf("CRC-32: %s\n", result);
 
     length = strlen(result);
     gettimeofday(&tval_before, NULL);
