@@ -4,7 +4,7 @@ import time
 # Define GPIO pin for LED
 LED_PIN = 4  # Replace with the actual GPIO pin number connected to the LED
 led = LED(LED_PIN)
-
+binary_data = '1010101011'
 def transmit_binary_data(binary_data):
     # Start bit
     led.on()
