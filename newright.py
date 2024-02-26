@@ -75,11 +75,11 @@ stationary_timers = defaultdict(float)
 frame_counter = 0
 
 # Client socket initialization on RPi2
-server_address_receive = ('192.168.1.1', 8889)  # IP of RPi1
+server_address_receive = ('192.168.1.1', 8888)  # IP of RPi1
 s_receive = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s_receive.connect(server_address_receive)
 
-server_address_send = ('192.168.1.1', 8888)  # Choose a different port for sending
+server_address_send = ('192.168.1.1', 8889)  # Choose a different port for sending
 s_send = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s_send.connect(server_address_send)
 
@@ -168,10 +168,10 @@ def send_thread_function(client_socket_send, frame_counter):
             break
 
 # Start threads for receiving and sending
-receive_thread = Thread(target=receive_thread_function, args=(s_receive))
+receive_thread = Thread(target=receive_thread_function, args=(s_send,))
 receive_thread.start()
 
-send_thread = Thread(target=send_thread_function, args=(s_send, frame_counter))
+send_thread = Thread(target=send_thread_function, args=(s_receive, frame_counter))
 send_thread.start()
 
 # Wait for the threads to finish (if needed)
