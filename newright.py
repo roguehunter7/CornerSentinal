@@ -100,7 +100,7 @@ receive_thread.start()
 def send_binary_data(client_address, binary_code):
     client_address.sendall(binary_code.encode())
 
-def send_thread_function(client_socket):
+def send_thread_function(client_socket,frame_counter):
     while cap.isOpened():
         success, frame = cap.read()
         
