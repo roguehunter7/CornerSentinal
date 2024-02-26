@@ -8,7 +8,7 @@ from PIL import Image, ImageTk
 import numpy as np
 
 # Load the YOLOv8 model
-model = YOLO('/train3/weights/best.onnx')
+model = YOLO('train3/weights/best.onnx')
 
 # Open the video file
 video_path = "test_images/leftside.mp4"
