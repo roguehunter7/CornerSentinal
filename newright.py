@@ -94,7 +94,7 @@ receive_thread.start()
 
 # Function to send binary data
 def send_binary_data(client_address, binary_code):
-    client_address.sendall(binary_code)
+    client_address.sendall(binary_code.encode())
 
 send_thread = Thread(target=send_binary_data, args=(s,))
 send_thread.start()
@@ -141,6 +141,7 @@ while cap.isOpened():
                             
                         # Receive binary_code from the other Raspberry Pi
                         recv_binary_code = receive_binary_data(s)
+                        print(recv_binary_code)
                         # Trigger transmit_binary_data function (assuming it's defined in the send module)
                         transmit_binary_data(recv_binary_code)
                         
