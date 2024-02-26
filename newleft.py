@@ -4,7 +4,7 @@ from collections import defaultdict
 import cv2
 import numpy as np
 from threading import Thread
-from time import time
+from time import time, sleep
 from ultralytics import YOLO
 from send import *
 
@@ -81,100 +81,99 @@ prev_pts = None
 prev_binary_code = None
 
 # Server socket initialization on RPi1
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s2 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_address = ('192.168.1.1', 8888)  # IP of RPi1
-s.bind(server_address)
-s.listen()
+s2.bind(server_address)
+s2.listen()
 
-connection, client_address = s.accept()
+s = s2.accept()
 
-# Function to receive binary data
-def receive_binary_data(client_socket):
-    return client_socket.recv(1024).decode()
+# Thread to receive binary data
 
-receive_thread = Thread(target=receive_binary_data, args=(connection,))
+def receive_thread_function(client_socket):
+    while True:
+        recv_binary_code = client_socket.recv(1024).decode()
+        transmit_binary_data(recv_binary_code)
+        sleep(0.01)
+        
+receive_thread = Thread(target=receive_thread_function, args=(s))
 receive_thread.start()
 
 # Function to send binary data
 def send_binary_data(client_address, binary_code):
     client_address.sendall(binary_code.encode())
 
-send_thread = Thread(target=send_binary_data, args=(connection,))
-send_thread.start()
-
-while cap.isOpened():
-    success, frame = cap.read()
-    
-    if success:
-        frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+def send_thread_function(client_socket):
+    while cap.isOpened():
+        success, frame = cap.read()
         
-        # Check if YOLO inference should be performed on this frame
-        if frame_counter % 2 == 0:
-            results = model.track(frame, persist=True, tracker='botsort.yaml', imgsz=(320, 320), int8=True, conf=0.15)
-            annotated_frame = results[0].plot()
+        if success:
+            frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            
+            # Check if YOLO inference should be performed on this frame
+            if frame_counter % 2 == 0:
+                results = model.track(frame, persist=True, tracker='botsort.yaml', imgsz=(320, 320), int8=True, conf=0.15)
+                annotated_frame = results[0].plot()
 
-            if results[0].boxes.id is not None:
-                boxes = results[0].boxes.xywh.cpu().numpy().astype(int)
-                class_id = results[0].boxes.cls.cpu().numpy().astype(int)
-                track_ids = results[0].boxes.id.cpu().numpy().astype(int)
+                if results[0].boxes.id is not None:
+                    boxes = results[0].boxes.xywh.cpu().numpy().astype(int)
+                    class_id = results[0].boxes.cls.cpu().numpy().astype(int)
+                    track_ids = results[0].boxes.id.cpu().numpy().astype(int)
 
-                for i, box in enumerate(boxes):
-                    x, y, w, h = box
-                    track = track_history[track_ids[i]]
-                    track.append((float(x + w / 2), float(y + h / 2)))
+                    for i, box in enumerate(boxes):
+                        x, y, w, h = box
+                        track = track_history[track_ids[i]]
+                        track.append((float(x + w / 2), float(y + h / 2)))
 
-                    if len(track) >= 2 and track[-2][1] < track[-1][1]:
-                        distances = [calculate_distance(track[j], track[j + 1]) for j in range(len(track) - 1)]
+                        if len(track) >= 2 and track[-2][1] < track[-1][1]:
+                            distances = [calculate_distance(track[j], track[j + 1]) for j in range(len(track) - 1)]
 
-                        speed = calculate_speed(distances, FACTOR_KM, LATENCY_FPS)
-                        is_stationary = speed < 1.0
-                        stationary_timers[track_ids[i]] = time.time() if not is_stationary else stationary_timers[
-                            track_ids[i]]
+                            speed = calculate_speed(distances, FACTOR_KM, LATENCY_FPS)
+                            is_stationary = speed < 1.0
+                            stationary_timers[track_ids[i]] = time.time() if not is_stationary else stationary_timers[
+                                track_ids[i]]
 
-                        if time.time() - stationary_timers[track_ids[i]] > 10.0:
-                            is_stationary = True
+                            if time.time() - stationary_timers[track_ids[i]] > 10.0:
+                                is_stationary = True
 
-                        is_wrong_side = False
-                        binary_code = generate_binary_code(class_id[i], speed, is_stationary, is_wrong_side)
+                            is_wrong_side = False
+                            binary_code = generate_binary_code(class_id[i], speed, is_stationary, is_wrong_side)
 
-                        # Transmit only if the binary code is different from the previous one
-                        if binary_code != prev_binary_code:
-                            send_binary_data(connection, binary_code)
-                            prev_binary_code = binary_code
+                            # Transmit only if the binary code is different from the previous one
+                            if binary_code != prev_binary_code:
+                                send_binary_data(client_socket, binary_code)
+                                prev_binary_code = binary_code
                             
-                        # Receive binary_code from the other Raspberry Pi
-                        recv_binary_code = receive_binary_data(connection)
-                        print(recv_binary_code)
-                        # Trigger transmit_binary_data function (assuming it's defined in the send module)
-                        transmit_binary_data(recv_binary_code)
-                        
-                        display_warning_message(annotated_frame, binary_code)
-                        cv2.putText(annotated_frame, f"Speed: {speed:.2f} km/h", (int(x), int(y) - 10),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-                        roi = frame_gray[int(y):int(y + h), int(x):int(x + w)]
- 
-                        if prev_frame is not None and prev_pts is not None:
-                            prev_frame_resized = cv2.resize(prev_frame, (roi.shape[1], roi.shape[0]))
-                            flow = cv2.calcOpticalFlowPyrLK(prev_frame_resized, roi, prev_pts, None,
-                                                           winSize=(15, 15), maxLevel=2)
-                            flow_distances = np.sqrt(np.sum((prev_pts - flow[0]) ** 2, axis=2))
+                            display_warning_message(annotated_frame, binary_code)
+                            cv2.putText(annotated_frame, f"Speed: {speed:.2f} km/h", (int(x), int(y) - 10),
+                                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+                            roi = frame_gray[int(y):int(y + h), int(x):int(x + w)]
+    
+                            if prev_frame is not None and prev_pts is not None:
+                                prev_frame_resized = cv2.resize(prev_frame, (roi.shape[1], roi.shape[0]))
+                                flow = cv2.calcOpticalFlowPyrLK(prev_frame_resized, roi, prev_pts, None,
+                                                            winSize=(15, 15), maxLevel=2)
+                                flow_distances = np.sqrt(np.sum((prev_pts - flow[0]) ** 2, axis=2))
 
-                            for j in range(len(flow_distances)):
-                                if flow_distances[j] > 0.5:
-                                    x1, y1 = prev_pts[j].astype(int).ravel()
-                                    x2, y2 = (x + flow[0][j][0], y + flow[0][j][1]).astype(int)
-                                    cv2.line(annotated_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                            prev_frame = roi
-                            prev_pts = np.array([[(int(w / 2), int(h / 2))]], dtype=np.float32)
+                                for j in range(len(flow_distances)):
+                                    if flow_distances[j] > 0.5:
+                                        x1, y1 = prev_pts[j].astype(int).ravel()
+                                        x2, y2 = (x + flow[0][j][0], y + flow[0][j][1]).astype(int)
+                                        cv2.line(annotated_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                                prev_frame = roi
+                                prev_pts = np.array([[(int(w / 2), int(h / 2))]], dtype=np.float32)
 
-        # Increment frame counter
-        frame_counter += 1
-        cv2.imshow("Frame", annotated_frame)
+            # Increment frame counter
+            frame_counter += 1
+            cv2.imshow("Frame", annotated_frame)
 
-        if cv2.waitKey(1) & 0xFF == ord("q"):
+            if cv2.waitKey(1) & 0xFF == ord("q"):
+                break
+        else:
             break
-    else:
-        break
+
+send_thread = Thread(target=send_thread_function, args=(s,))
+send_thread.start()
 
 # Wait for the threads to finish (if needed)
 send_thread.join()
