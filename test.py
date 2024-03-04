@@ -3,11 +3,10 @@ import numpy as np
 from ultralytics import YOLO
 from tkinter import Tk, Canvas, Button, Label
 from numba import njit, prange
-from collections import defaultdict
+from collections import defaultdict, deque
+from PIL import Image, ImageTk
 
 import supervision as sv
-
-SOURCE = np.array([])  # Or use the actual points you've selected
 
 TARGET_WIDTH = 25
 TARGET_HEIGHT = 250
@@ -86,14 +85,11 @@ def process_video():
 
     byte_track = sv.ByteTrack(frame_rate=video_info.fps, track_thresh=confidence_threshold)
 
-    thickness = sv.calculate_dynamic_line_thickness(resolution_wh=video_info.resolution_wh)
-    text_scale = sv.calculate_dynamic_text_scale(resolution_wh=video_info.resolution_wh)
-    bounding_box_annotator = sv.BoundingBoxAnnotator(thickness=thickness)
-    label_annotator = sv.LabelAnnotator(text_scale=text_scale, text_thickness=thickness, text_position=sv.Position.BOTTOM_CENTER)
-    trace_annotator = sv.TraceAnnotator(thickness=thickness, trace_length=video_info.fps * 2, position=sv.Position.BOTTOM_CENTER)
-
     point_selector = PointSelector()
-    SOURCE = point_selector.select_points(frame)
+    frame_generator = sv.get_video_frames_generator(source_path=video_path)
+
+    # Select points only once outside the loop
+    SOURCE = point_selector.select_points(next(frame_generator))
     SOURCE.extend(point_selector.points)
 
     if len(SOURCE) < 3:
@@ -104,8 +100,6 @@ def process_video():
     view_transformer = ViewTransformer(source=SOURCE, target=TARGET)
 
     coordinates = defaultdict(lambda: deque(maxlen=video_info.fps))
-
-    frame_generator = sv.get_video_frames_generator(source_path=video_path)
 
     for frame in frame_generator:
         result = model(frame)[0]
@@ -124,13 +118,14 @@ def process_video():
         labels = calculate_speed(coordinates, video_info.fps)
 
         annotated_frame = frame.copy()
-        annotated_frame = trace_annotator.annotate(scene=annotated_frame, detections=detections)
-        annotated_frame = bounding_box_annotator.annotate(scene=annotated_frame, detections=detections)
-        annotated_frame = label_annotator.annotate(scene=annotated_frame, detections=detections, labels=labels)
+        annotated_frame = sv.TraceAnnotator().annotate(scene=annotated_frame, detections=detections)
+        annotated_frame = sv.BoundingBoxAnnotator().annotate(scene=annotated_frame, detections=detections)
+        annotated_frame = sv.LabelAnnotator().annotate(scene=annotated_frame, detections=detections, labels=labels)
 
         cv2.imshow("frame", annotated_frame)
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break
+
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
