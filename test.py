@@ -7,7 +7,7 @@ from collections import defaultdict
 
 import supervision as sv
 
-SOURCE = []
+SOURCE = np.array([])  # Or use the actual points you've selected
 
 TARGET_WIDTH = 25
 TARGET_HEIGHT = 250
@@ -46,22 +46,35 @@ class PointSelector:
     def __init__(self):
         self.points = []
 
-    def select_points(self):
+    def select_points(self, frame):
         root = Tk()
         root.title("Point Selector")
-        canvas = Canvas(root, width=800, height=600)
+
+        canvas = Canvas(root, width=frame.shape[1], height=frame.shape[0])
         canvas.pack()
+
         label = Label(root, text="Click on points to fine-tune the region.")
         label.pack()
+
         button = Button(root, text="Confirm Points", command=root.destroy)
         button.pack()
+
+        canvas.create_image(0, 0, anchor="nw", image=self.cv2_to_tkinter(frame))
+
         canvas.bind("<Button-1>", lambda event: self.on_click(event, canvas))
         root.mainloop()
+
+        return np.array(self.points)
 
     def on_click(self, event, canvas):
         x, y = event.x, event.y
         self.points.append([x, y])
         canvas.create_oval(x - 5, y - 5, x + 5, y + 5, fill="red")
+
+    def cv2_to_tkinter(self, image):
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        return ImageTk.PhotoImage(Image.fromarray(image))
+
 
 def process_video():
     video_path = "test_images/leftside.mp4"
@@ -80,7 +93,7 @@ def process_video():
     trace_annotator = sv.TraceAnnotator(thickness=thickness, trace_length=video_info.fps * 2, position=sv.Position.BOTTOM_CENTER)
 
     point_selector = PointSelector()
-    point_selector.select_points()
+    SOURCE = point_selector.select_points(frame)
     SOURCE.extend(point_selector.points)
 
     if len(SOURCE) < 3:
