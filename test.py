@@ -86,14 +86,14 @@ class PointSelector:
 
 def process_video():
     # Set the hardcoded input video path
-    video_path = "your_video_path.mp4"
-
+    video_path = "test_images/leftside.mp4"
+    
     # Set hardcoded parameters for optimization
     confidence_threshold = 0.3
     iou_threshold = 0.7
 
     video_info = sv.VideoInfo.from_video_path(video_path=video_path)
-    model = YOLO("yolov8x.pt")
+    model = YOLO('train3/weights/best.onnx', task='detect')
 
     byte_track = sv.ByteTrack(
         frame_rate=video_info.fps, track_thresh=confidence_threshold
