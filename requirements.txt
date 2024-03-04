@@ -9,3 +9,4 @@ gpiozero
 python-multipart
 supervision
 tk
+numba
