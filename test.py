@@ -45,11 +45,11 @@ class PointSelector:
     def __init__(self):
         self.points = []
 
-    def select_points(self, frame):
+    def select_points(self, initial_frame):
         root = Tk()
         root.title("Point Selector")
 
-        canvas = Canvas(root, width=frame.shape[1], height=frame.shape[0])
+        canvas = Canvas(root, width=initial_frame.shape[1], height=initial_frame.shape[0])
         canvas.pack()
 
         label = Label(root, text="Click on points to fine-tune the region.")
@@ -58,7 +58,8 @@ class PointSelector:
         button = Button(root, text="Confirm Points", command=root.destroy)
         button.pack()
 
-        canvas.create_image(0, 0, anchor="nw", image=self.cv2_to_tkinter(frame))
+        # Use the initial frame for display
+        canvas.create_image(0, 0, anchor="nw", image=self.cv2_to_tkinter(initial_frame))
 
         canvas.bind("<Button-1>", lambda event: self.on_click(event, canvas))
         root.mainloop()
