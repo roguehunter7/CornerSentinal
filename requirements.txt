@@ -4,6 +4,8 @@ scikit-image
 onnxruntime 
 onnxsim 
 onnx 
+rpi.gpio
+gpiozero
 python-multipart
 supervision
 tk
