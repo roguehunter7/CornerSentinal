@@ -70,7 +70,6 @@ int main() {
         printf("Please input the message to send: ");
         if (fgets(input_buffer, sizeof(input_buffer), stdin) == NULL) {
             fprintf(stderr, "Error reading input: %s\n", strerror(errno));
-            break;
         }
         int msg_len = strlen(input_buffer) - 1;  // remove newline character
 
