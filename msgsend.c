@@ -1,126 +1,119 @@
 #include <stdio.h>
-#include <malloc.h>
-#include <sys/time.h>
+#include <stdlib.h>
 #include <string.h>
 #include <gpiod.h>
+#include <sys/time.h>
+#include <errno.h>
 
-char result[3000] = {'1', '0', '1', '0', '1', '0', '1', '0', '1', '0', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1'};
-int counter = 20;
+typedef struct {
+    char preamble[20];
+    char payload_size[16];
+    char payload[2500];
+} wiremsg;
 
-void chartobin(char c)
-{
+void chartobin(char c, char* result, int* counter) {
     int i;
     for (i = 7; i >= 0; i--) {
-        result[counter] = (c & (1 << i)) ? '1' : '0';
-        counter++;
+        result[*counter] = (c & (1 << i)) ? '1' : '0';
+        (*counter)++;
     }
 }
 
-void int2bin(unsigned integer, int n)
-{
-    for (int i = 0; i < n; i++) {
-        result[counter] = (integer & (int)1 << (n - i - 1)) ? '1' : '0';
-        counter++;
+void setHeaderPayloadSizeField(unsigned msgLen, wiremsg* lifiWireMsg_p) {
+    int payload_size_filed_len = sizeof(lifiWireMsg_p->payload_size);
+    for (int i = 0; i < payload_size_filed_len; i++) {
+        lifiWireMsg_p->payload_size[i] = (msgLen & (int)1 << (payload_size_filed_len - i - 1)) ? '1' : '0';
     }
-    result[36] = '\0';
+    lifiWireMsg_p->payload_size[payload_size_filed_len] = '\0';
 }
 
-int pos = 0;
-
-// Function to calculate CRC
-void calculateCRC(char *data, int len, int *crc) {
-    int poly[9] = {1, 0, 0, 1, 0, 1, 1, 1, 1};  // CRC-8 polynomial
-    int crc_val = 0;
-
-    for (int i = 0; i < len; i++) {
-        crc_val ^= (data[i] == '1') << 7;
-        for (int j = 0; j < 8; j++) {
-            crc_val = (crc_val << 1) ^ ((crc_val & 0x80) ? 0x09 : 0);
+void setPayload(unsigned msgLen, wiremsg* lifiWireMsg_p, char* input_buffer) {
+    for (int i = 0; i < msgLen; i++) {
+        for (int j = 7; j >= 0; j--) {
+            lifiWireMsg_p->payload[i * 8 + (7 - j)] = (input_buffer[i] & (1 << j)) ? '1' : '0';
         }
     }
-
-    *crc = crc_val;
+    lifiWireMsg_p->payload[msgLen * 8] = '\0';
 }
 
-int main()
-{
+int main() {
     struct timeval tval_before, tval_after, tval_result;
-    struct gpiod_chip *chip;
-    struct gpiod_line *line;
+    char input_buffer[2500];
+    wiremsg lifiWireMsg = {
+        .preamble = "10101010101111111111"
+    };
 
-    // Open GPIO chip
-    chip = gpiod_chip_open("/dev/gpiochip4");
+    const char* chip_name = "gpiochip4";
+    struct gpiod_chip* chip = gpiod_chip_open_by_name(chip_name);
     if (!chip) {
-        perror("Failed to open GPIO chip");
+        fprintf(stderr, "Failed to open GPIO chip %s: %s\n", chip_name, strerror(errno));
         return 1;
     }
 
-    // Get GPIO line
-    line = gpiod_chip_get_line(chip, 4);
+    int line_num = 4;
+    struct gpiod_line* line = gpiod_chip_get_line(chip, line_num);
     if (!line) {
-        perror("Failed to get GPIO line");
+        fprintf(stderr, "Failed to get GPIO line %d: %s\n", line_num, strerror(errno));
         gpiod_chip_close(chip);
         return 1;
     }
 
-    // Configure GPIO line as output
-    if (gpiod_line_request_output(line, "example", 0) != 0) {
-        perror("Failed to configure GPIO line as output");
+    int request_output_status = gpiod_line_request_output(line, "lifi", 0);
+    if (request_output_status < 0) {
+        fprintf(stderr, "Failed to request GPIO line %d as output: %s\n", line_num, strerror(-request_output_status));
         gpiod_line_release(line);
         gpiod_chip_close(chip);
         return 1;
     }
 
-    // Read message
-    char msg[3000];
-    int len, k, length;
-    printf("\n Enter the Message: ");
-    scanf("%[^\n]", msg);
-    len = strlen(msg);
-    int2bin(len * 8, 16); // Multiply by 8 because one byte is 8 bits
-    printf("Frame Header (Synchro and Textlength = %s\n", result);
-
-    for (k = 0; k < len; k++) {
-        chartobin(msg[k]);
-    }
-
-    // Calculate CRC for the message data
-    int crc_val;
-    calculateCRC(result + 36, counter - 36, &crc_val);
-
-    // Append CRC value to the binary data
-    for (int i = 7; i >= 0; i--) {
-        result[counter++] = ((crc_val >> i) & 1) ? '1' : '0';
-    }
-
-    printf("Frame Header (Synchro and Textlength and CRC) = %s\n", result);
-
-    length = strlen(result);
-    gettimeofday(&tval_before, NULL);
-
-    while (pos != length) {
-        gettimeofday(&tval_after, NULL);
-        timersub(&tval_after, &tval_before, &tval_result);
-        double time_elapsed = (double)tval_result.tv_sec + ((double)tval_result.tv_usec / 1000000.0f);
-
-        while (time_elapsed < 0.001) {
-            gettimeofday(&tval_after, NULL);
-            timersub(&tval_after, &tval_before, &tval_result);
-            time_elapsed = (double)tval_result.tv_sec + ((double)tval_result.tv_usec / 1000000.0f);
+    while (1) {
+        printf("Please input the message to send: ");
+        if (fgets(input_buffer, sizeof(input_buffer), stdin) == NULL) {
+            fprintf(stderr, "Error reading input: %s\n", strerror(errno));
+            break;
         }
+        int msg_len = strlen(input_buffer) - 1;  // remove newline character
+
+        setHeaderPayloadSizeField(msg_len, &lifiWireMsg);
+        setPayload(msg_len, &lifiWireMsg, input_buffer);
+
+        int bitPos = 0;
+        int wireMsgLen = strlen(lifiWireMsg.preamble) + strlen(lifiWireMsg.payload_size) + msg_len * 8;
 
         gettimeofday(&tval_before, NULL);
 
-        if (result[pos] == '1') {
-            gpiod_line_set_value(line, 1);
-            pos++;
-        } else if (result[pos] == '0') {
-            gpiod_line_set_value(line, 0);
-            pos++;
+        while (bitPos < wireMsgLen) {
+            gettimeofday(&tval_after, NULL);
+            timersub(&tval_after, &tval_before, &tval_result);
+            double time_elapsed = (double)tval_result.tv_sec + ((double)tval_result.tv_usec / 1000000.0f);
+
+            while (time_elapsed < 0.001) {
+                gettimeofday(&tval_after, NULL);
+                timersub(&tval_after, &tval_before, &tval_result);
+                time_elapsed = (double)tval_result.tv_sec + ((double)tval_result.tv_usec / 1000000.0f);
+            }
+
+            gettimeofday(&tval_before, NULL);
+
+            char bitToSend;
+            if (bitPos < strlen(lifiWireMsg.preamble)) {
+                bitToSend = lifiWireMsg.preamble[bitPos];
+            } else if (bitPos < strlen(lifiWireMsg.preamble) + strlen(lifiWireMsg.payload_size)) {
+                bitToSend = lifiWireMsg.payload_size[bitPos - strlen(lifiWireMsg.preamble)];
+            } else {
+                bitToSend = lifiWireMsg.payload[bitPos - strlen(lifiWireMsg.preamble) - strlen(lifiWireMsg.payload_size)];
+            }
+
+            int set_value_status = gpiod_line_set_value(line, bitToSend == '1' ? 1 : 0);
+            if (set_value_status < 0) {
+                fprintf(stderr, "Failed to set GPIO line %d value: %s\n", line_num, strerror(-set_value_status));
+                break;
+            }
+
+            bitPos++;
         }
     }
 
-    // Clean up
     gpiod_line_release(line);
     gpiod_chip_close(chip);
 

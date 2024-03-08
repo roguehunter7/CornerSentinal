@@ -1,220 +1,117 @@
-//global variables
-static unsigned int state;
-String sequence="0000000000000000";
-String dataBits="";
-boolean synchro_Done =false;
-boolean receiveData_Done =false;
-int decimalValue=800; //just for initialisiation (gets later dynamically calculated)
-boolean crc_check_value=false; //Flag for CRC calculation
+#include <Arduino.h>
+#include <string.h>
 
+// Global variables
+static unsigned int StateType;
+String bitSequence = "";
+int payloadLen = 0;
+int HEADER_LEN = 16;
+enum StateType { waitingPreamble, receivingData };
 
 void setup() {
-  //Timer Interrupt settings:
-  // TIMER SETUP- the timer interrupt allows preceise timed measurements of the reed switch
-  //for mor info about configuration of arduino timers see https://nerd-corner.com/arduino-timer-interrupts-how-to-program-arduino-registers/
-  cli();//stop interrupts
+    // Setup timer interrupts for sampling of received bits
+    cli(); // Clear interrupts
 
-  //set timer1 interrupt at 1kHz ; 
-  TCCR1A = 0;// set entire TCCR1A register to 0
-  TCCR1B = 0;// same for TCCR1B
-  TCNT1  = 0;//initialize counter value to 0;
-  // set timer count for 1khz increments
-  OCR1A = 2001;// = (16*10^6) / (250*8) - 1        OCR1A = 2001 for 1kHz; ORCIA = 7999 for 250Hz
-  // turn on CTC mode
-  TCCR1B |= (1 << WGM12);
-  // Set CS11 bit for 8 prescaler
-  TCCR1B |= (1 << CS11);   
-  // enable timer compare interrupt
-  TIMSK1 |= (1 << OCIE1A);
-  
-  sei();//allow interrupts
-  //END TIMER SETUP
-  
-  Serial.begin(9600);
+    // Timer Register Inits
+    TCCR1A = 0; // Set entire TCCR1A register to 0
+    TCCR1B = 0; // Same for TCCR1B
+    TCNT1 = 0;  // Initialize counter value to 0
 
+    // Set timer1 interrupt at 1kHz
+    // Set timer count for 1kHz increments
+    OCR1A = 2001; // = (16*10^6) / (1000*8) - 1 = 2001 for 1kHz
 
-  //Input Pin for the Solarplate
-  pinMode(A0,INPUT);
+    // Turn on CTC mode
+    TCCR1B |= (1 << WGM12);
 
-  //initial State is looking for Synchronization sequence
-  state = 0;
-  
+    // Set CS11 bit for 8 prescaler
+    TCCR1B |= (1 << CS11);
+
+    // Enable timer compare interrupt
+    TIMSK1 |= (1 << OCIE1A);
+
+    sei(); // Enable interrupts
+
+    Serial.begin(9600);
+
+    // Input Pin for the Solar Cell
+    pinMode(A0, INPUT);
+
+    // Set state to unsynchronized (looking for preamble)
+    StateType = waitingPreamble;
 }
 
+// Timer interrupt handler
+ISR(TIMER1_COMPA_vect) {
+    String bit;
+    int solarCellAnalogValue = analogRead(A0);
+    float voltageQuantize = solarCellAnalogValue * (5.0 / 1023.0);
 
-ISR(TIMER1_COMPA_vect) 
-{
-  String data="0";
-  int sensorValue = analogRead(A0);
-  float voltage = sensorValue * (5.0 / 1023.0);
-  // Serial.println(sensorValue);
-  // Serial.println(voltage);
+    if (voltageQuantize >= 1) {
+        bit = "1";
+    } else {
+        bit = "0";
+    }
 
-  if (voltage > 1) 
-  {
-    data="1";
-    //Serial.println("1");
-  }
-  else
-  {
-    data="0";
-    //Serial.println("0");
-  }
-
-
-
-  
-  //This is the "real" loop function
-  switch (state)
-  {
-    case 0:
-      //looking for synchronization sequence
-      synchro_Done=false;
-      lookForSynchro(data);
-
-      if (synchro_Done== true)
-      {
-        state=1;
-      }
-      break;
-    case 1:
-      //receive Data
-      receiveData_Done =false;
-      receiveData(data);
-
-      if (receiveData_Done==true)
-      {
-        state=0; 
-      }
-      break;
-  }
-
-  
+    // This is the "real" loop function
+    switch (StateType) {
+    case waitingPreamble:
+        // Look for preamble
+        checkForPreamble(bit);
+        break;
+    case receivingData:
+        receiveData(bit);
+        break;
+    }
 }
-
 
 void loop() {
-  // put your main code here, to run repeatedly:
-
+    // Put your main code here, to run repeatedly
 }
 
+void checkForPreamble(String bit) {
+    String preamble = "10101010101111111111";
+    bitSequence.concat(bit);
+    if (bitSequence.length() > preamble.length())
+        bitSequence.remove(0, 1);
 
-void lookForSynchro(String bit)
-{
-  String preambel="1010101111111111";
-  sequence.concat(bit);
-  sequence.remove(0,1);
-  // Serial.println("Sequence: "+sequence);
-  if (sequence==preambel)
-  {
-    Serial.println("Synchro done");
-    synchro_Done=true;  
-    sequence="0000000000000000";
-  }
+    if (bitSequence == preamble) {
+        Serial.println("Synchronization done");
+        StateType = receivingData;
+        bitSequence = "";
+    }
 }
 
-void receiveData(String bit)
-{
-  dataBits.concat(bit);
+void receiveData(String bit) {
+    bitSequence.concat(bit);
 
-  if (dataBits.length()==16)
-  {
-    Serial.println("data Bits: "+dataBits);
-    char char_array[17];  // Prepare the character array (the buffer)
-    dataBits.toCharArray(char_array, 17);
-    decimalValue= strtol(char_array, NULL, 2);//function for converting string into long data type integer
-    Serial.println(decimalValue);
+    if (bitSequence.length() == HEADER_LEN) {
+        char charArray[HEADER_LEN + 1];
+        bitSequence.toCharArray(charArray, HEADER_LEN + 1);
+        payloadLen = strtol(charArray, NULL, 2);
+    }
 
-  }
-
-  if(dataBits.length()==decimalValue+16+8) //Stop dynamically at the end of the message; +16 because 2 bytes frame for data message length; +8 for last byte CRC
-  {
-
-    if (crc_check_value==false) //do the CRC check
+    if (bitSequence.length() == payloadLen + HEADER_LEN) // Received the entire message
     {
-      checkCRC(dataBits);  
+        // Decode the ASCII from binary
+        String output = "";
+        for (int i = HEADER_LEN / 8; i < (bitSequence.length() / 8); i++) {
+            String pl = "";
+            for (int l = i * 8; l < 8 * (i + 1); l++)
+                pl += bitSequence[l];
+
+            int n = 0;
+            for (int j = 0; j < 8; j++) {
+                int x = (int)(pl[j]) - (int)'0';
+                for (int k = 0; k < 7 - j; k++)
+                    x *= 2;
+                n += x;
+            }
+            output += (char)n;
+        }
+
+        Serial.println(output);
+        bitSequence = "";
+        StateType = waitingPreamble;
     }
-
-    if (crc_check_value==true) //only show message when not corrupted
-    {
-      //Converting the Bits to Text here
-      String output = "";
-      for(int i = 2; i < (dataBits.length()/8)-1; i++) //first 2 bytes are for the data length and have no msg data; -1 because last Byte is for CRC and has no message data
-      {
-          String pl = "";
-          for(int l = i*8; l < 8*(i+1); l++){ 
-              pl += dataBits[l];
-          }    
-          
-          int n = 0;
-          for(int j = 0; j < 8; j++)
-          {
-              int x = (int)(pl[j])-(int)'0';
-              for(int k = 0; k < 7-j; k++)  x *= 2;
-              n += x;
-          }
-          output += (char)n;
-      }
-      Serial.println(output);
-    
-      dataBits="";
-      receiveData_Done=true; 
-      crc_check_value=false;
-    }
-    
-  }
-}
-
-void checkCRC(String dataFrame)
-{
-  int polynom[9] = {1, 0, 0, 1, 0, 1, 1, 1, 1};
-  int k = dataFrame.length();
-  int p = 9; // Length of the CRC polynomial
-  int n = k + p - 1; // Add some zeros to the end of the data for polynomial division
-  int frame[n]; // Buffer frame with perfect size for CRC
-
-  // Convert the char array to an int array
-  for (int i = 0; i < n; i++) {
-    if (i < k) {
-      frame[i] = dataFrame[i + 20] - '0'; // Skip the synchronization sequence and frame header
-    } else {
-      frame[i] = 0;
-    }
-  }
-
-  // Make the division
-  int i = 0;
-  while (i < k - 20) { // Exclude the synchronization sequence and frame header
-    for (int j = 0; j < p; j++) {
-      if (frame[i + j] == polynom[j]) {
-        frame[i + j] = 0;
-      } else {
-        frame[i + j] = 1;
-      }
-    }
-    while (i < n && frame[i] != 1)
-      i++;
-  }
-
-  bool CRC_Done_false = false;
-  for (int j = k - 20; j - (k - 20) < p - 1; j++) {
-    // Check the CRC sequence after the message data
-    if (frame[j] == 1) {
-      CRC_Done_false = true;
-    }
-  }
-
-  if (CRC_Done_false == false) {
-    Serial.println("Message has no errors!");
-    Serial.println();
-    Serial.print("Message: ");
-    crc_check_value = true;
-  }
-
-  if (CRC_Done_false == true) {
-    Serial.println("Message had an error and was dropped!");
-    crc_check_value = false;
-    dataBits = "";
-    receiveData_Done = true;
-  }
 }
