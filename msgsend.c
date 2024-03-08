@@ -78,7 +78,6 @@ int main()
     scanf("%[^\n]", msg);
     len = strlen(msg);
     int2bin(len * 8, 16); // Multiply by 8 because one byte is 8 bits
-    printf("Frame Header (Synchro and Textlength = %s\n", result);
 
     for (k = 0; k < len; k++) {
         chartobin(msg[k]);
@@ -92,6 +91,8 @@ int main()
     for (int i = 0; i < 8; i++) {
         result[counter++] = ((crc_val >> (7 - i)) & 1) ? '1' : '0';
     }
+
+    printf("Frame Header (Synchro and Textlength and CRC) = %s\n", result);
 
     length = strlen(result);
     gettimeofday(&tval_before, NULL);

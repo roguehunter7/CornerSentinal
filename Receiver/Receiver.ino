@@ -32,7 +32,6 @@ void setup() {
   
   Serial.begin(9600);
 
-  analogReference(INTERNAL);
 
   //Input Pin for the Solarplate
   pinMode(A0,INPUT);
@@ -165,62 +164,57 @@ void receiveData(String bit)
     
   }
 }
+
 void checkCRC(String dataFrame)
 {
-  int polynom[9]={1,0,0,1,0,1,1,1,1};
-  dataFrame="10101010101111111111"+dataFrame;
-  int k=dataFrame.length();  
-  int p=9; //int p=strlen(polynom); // lenght of polynom (normaly fix, but it is better to use a variable if I want to change the polynom later
-  int n=k+p-1; //add some zeros to the end of the data for the polynom division
-  int frame[n]; //buffer frame with perfect size for CRC 
-    
-  //convert char array to int array
-  for(int i=0;i<n;i++){
-    if(i<k){
-      frame[i]=dataFrame[i]-'0'; //converts an char number to corresponding int number
-    }
-    else{
-      frame[i]=0;
-    } 
-  }
-   
-  //make the division
-  int i=0;
-  while (  i <  k  ){                     
-    for( int j=0 ; j < p ; j++){
-            if( frame[i+j] == polynom[j] )  {
-                frame[i+j]=0;
-            }
-            else{
-                frame[i+j]=1;
-            }     
-    }
-    while( i< n && frame[i] != 1)
-      i++; 
-  }
-  bool CRC_Done_false=false;  
-  for(int j=k; j-k<p-1;j++)
-  {
-    //erst am Ende des Frames die CRC Sequenz deswegen j=k
-    if (frame[j]==1){
-      CRC_Done_false=true;
-    }     
-  }  
+  int polynom[9] = {1, 0, 0, 1, 0, 1, 1, 1, 1};
+  int k = dataFrame.length();
+  int p = 9; // Length of the CRC polynomial
+  int n = k + p - 1; // Add some zeros to the end of the data for polynomial division
+  int frame[n]; // Buffer frame with perfect size for CRC
 
-  if(CRC_Done_false==false)
-  {
+  // Convert the char array to an int array
+  for (int i = 0; i < n; i++) {
+    if (i < k) {
+      frame[i] = dataFrame[i + 20] - '0'; // Skip the synchronization sequence and frame header
+    } else {
+      frame[i] = 0;
+    }
+  }
+
+  // Make the division
+  int i = 0;
+  while (i < k - 20) { // Exclude the synchronization sequence and frame header
+    for (int j = 0; j < p; j++) {
+      if (frame[i + j] == polynom[j]) {
+        frame[i + j] = 0;
+      } else {
+        frame[i + j] = 1;
+      }
+    }
+    while (i < n && frame[i] != 1)
+      i++;
+  }
+
+  bool CRC_Done_false = false;
+  for (int j = k - 20; j - (k - 20) < p - 1; j++) {
+    // Check the CRC sequence after the message data
+    if (frame[j] == 1) {
+      CRC_Done_false = true;
+    }
+  }
+
+  if (CRC_Done_false == false) {
     Serial.println("Message has no errors!");
     Serial.println();
     Serial.print("Message: ");
-    crc_check_value=true;  
+    crc_check_value = true;
   }
 
-  if(CRC_Done_false==true)
-  {
+  if (CRC_Done_false == true) {
     Serial.println("Message had an error and was dropped!");
-    crc_check_value=false;  
-    dataBits="";
-    receiveData_Done=true;
+    crc_check_value = false;
+    dataBits = "";
+    receiveData_Done = true;
   }
-   
 }

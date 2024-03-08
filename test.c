@@ -119,7 +119,8 @@ void sendBinaryCode(const char *binary_code) {
         timersub(&tval_after, &tval_before, &tval_result);
         double time_elapsed = (double)tval_result.tv_sec + ((double)tval_result.tv_usec / 1000000.0f);
 
-        while (time_elapsed < 0.001) {
+        while (time_elapsed < 0.001) 
+        {
             gettimeofday(&tval_after, NULL);
             timersub(&tval_after, &tval_before, &tval_result);
             time_elapsed = (double)tval_result.tv_sec + ((double)tval_result.tv_usec / 1000000.0f);
@@ -128,20 +129,26 @@ void sendBinaryCode(const char *binary_code) {
         gettimeofday(&tval_before, NULL);
 
         char bit_to_send;
-        if (bit_pos < sizeof(lifiWireMsg.preamble)) {
+        if (bit_pos < sizeof(lifiWireMsg.preamble)) 
+        {
             bit_to_send = lifiWireMsg.preamble[bit_pos];
-        } else if (bit_pos < sizeof(lifiWireMsg.preamble) + sizeof(lifiWireMsg.payload_size)) {
+        } 
+        else if (bit_pos < sizeof(lifiWireMsg.preamble) + sizeof(lifiWireMsg.payload_size)) 
+        {
             bit_to_send = lifiWireMsg.payload_size[bit_pos - sizeof(lifiWireMsg.preamble)];
-        } else if (bit_pos < sizeof(lifiWireMsg.preamble) + sizeof(lifiWireMsg.payload_size) +
-                        sizeof(lifiWireMsg.payload)) {
+        } 
+        else if (bit_pos < sizeof(lifiWireMsg.preamble) + sizeof(lifiWireMsg.payload_size) + sizeof(lifiWireMsg.payload)) 
+        {
             bit_to_send = lifiWireMsg.payload[bit_pos - sizeof(lifiWireMsg.preamble) - sizeof(lifiWireMsg.payload_size)];
-        } else {
-            bit_to_send = lifiWireMsg.crc[bit_pos - sizeof(lifiWireMsg.preamble) - sizeof(lifiWireMsg.payload_size) -
-                                           sizeof(lifiWireMsg.payload)];
+        } 
+        else 
+        {
+            bit_to_send = lifiWireMsg.crc[bit_pos - sizeof(lifiWireMsg.preamble) - sizeof(lifiWireMsg.payload_size) - sizeof(lifiWireMsg.payload)];
         }
 
         gpiod_line_set_value(line, bit_to_send == '1' ? 1 : 0);
         bit_pos++;
+
     }
 
     gpiod_chip_close(chip);
