@@ -32,7 +32,6 @@ void setup() {
   
   Serial.begin(9600);
 
-  analogReference(INTERNAL);
 
   //Input Pin for the Solarplate
   pinMode(A0,INPUT);
@@ -48,8 +47,8 @@ ISR(TIMER1_COMPA_vect)
   String data="0";
   int sensorValue = analogRead(A0);
   float voltage = sensorValue * (5.0 / 1023.0);
-  Serial.println(sensorValue);
-  //Serial.println(voltage);
+  // Serial.println(sensorValue);
+  Serial.println(voltage);
 
   if (voltage > 1) 
   {
