@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <malloc.h>
+#include <sys/time.h>
 #include <string.h>
 #include <gpiod.h>
-#include <sys/time.h>
 
 char result[3000] = {'1', '0', '1', '0', '1', '0', '1', '0', '1', '0', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1'};
 int counter = 20;
@@ -10,133 +10,115 @@ int counter = 20;
 void chartobin(char c)
 {
     int i;
-    for(i=7; i>=0;i--){
-        result[counter]= (c&(1<<i))?'1':'0';  
+    for (i = 7; i >= 0; i--) {
+        result[counter] = (c & (1 << i)) ? '1' : '0';
         counter++;
     }
 }
 
 void int2bin(unsigned integer, int n)
-{  
-    for (int i=0;i<n;i++)   
-    {
-    result[counter]= (integer & (int)1<<(n-i-1)) ? '1' : '0';
-    result[36]='\0';
-    counter++;
-    }
-    
-}
-#define TARGET_BIT_PERIOD_MS 4
-// CRC Lookup Table
-unsigned int crc32_table[256];
-
-// Initialize CRC Lookup Table
-void init_crc32_table()
 {
-    for (unsigned int i = 0; i < 256; i++)
-    {
-        unsigned int crc = i;
-        for (int j = 0; j < 8; j++)
-        {
-            crc = (crc & 1) ? (crc >> 1) ^ 0xEDB88320 : crc >> 1;
-        }
-        crc32_table[i] = crc;
+    for (int i = 0; i < n; i++) {
+        result[counter] = (integer & (int)1 << (n - i - 1)) ? '1' : '0';
+        result[36] = '\0';
+        counter++;
     }
 }
 
-// Calculate CRC-32 for a given buffer
-unsigned int calculate_crc32(const char *buffer, size_t length)
-{
-    unsigned int crc = 0xFFFFFFFF;
-    for (size_t i = 0; i < length; i++)
-    {
-        crc = (crc >> 8) ^ crc32_table[(crc & 0xFF) ^ buffer[i]];
-    }
-    return crc ^ 0xFFFFFFFF;
-}
 int pos = 0;
+
+// Function to calculate CRC
+void calculateCRC(char *data, int len, int *crc) {
+    int poly[9] = {1, 0, 0, 1, 0, 1, 1, 1, 1};  // CRC-8 polynomial
+    int crc_val = 0;
+
+    for (int i = 0; i < len; i++) {
+        crc_val ^= (data[i] == '1') << 7;
+        for (int j = 0; j < 8; j++) {
+            crc_val = (crc_val << 1) ^ ((crc_val & 0x80) ? 0x09 : 0);
+        }
+    }
+
+    *crc = crc_val;
+}
+
 int main()
 {
-    // Initialize libgpiod
+    struct timeval tval_before, tval_after, tval_result;
     struct gpiod_chip *chip;
     struct gpiod_line *line;
+
+    // Open GPIO chip
     chip = gpiod_chip_open("/dev/gpiochip4");
-    if (!chip)
-    {
-        perror("Error opening GPIO chip");
-        return -1;
+    if (!chip) {
+        perror("Failed to open GPIO chip");
+        return 1;
     }
 
+    // Get GPIO line
     line = gpiod_chip_get_line(chip, 4);
-    if (!line)
-    {
-        perror("Error getting GPIO line");
+    if (!line) {
+        perror("Failed to get GPIO line");
         gpiod_chip_close(chip);
-        return -1;
+        return 1;
     }
-      // Configure the GPIO line
-    if (gpiod_line_request_output(line, "led-control", 0) < 0)
-    {
-        perror("Error configuring GPIO line");
+
+    // Configure GPIO line as output
+    if (gpiod_line_request_output(line, "example", 0) != 0) {
+        perror("Failed to configure GPIO line as output");
         gpiod_line_release(line);
         gpiod_chip_close(chip);
-        return -1;
+        return 1;
     }
-    struct timeval tval_before, tval_after, tval_result;
-    init_crc32_table();
-    // Read message
-    char msg[3000]; 
-        int len, k, length;
-       
-        printf("\n Enter the Message: ");
-        scanf("%[^'\n']",msg);
-        
-        len=strlen(msg);
-        // Calculate CRC-32 for the message
-        unsigned int crc32 = calculate_crc32(msg, len);
 
-        
-        int2bin(len*8, 16); 
-        printf ("Frame Header (Synchro and Textlength = %s\n", result);
-        
-        for(k=0;k<len;k++)
-        {
-            chartobin(msg[k]);            
-        }
-        // Add CRC-32 to the binary data
-        int2bin(crc32, 32);
-        printf("CRC-32: %s\n", result);
+    // Read message
+    char msg[3000];
+    int len, k, length;
+    printf("\n Enter the Message: ");
+    scanf("%[^\n]", msg);
+    len = strlen(msg);
+    int2bin(len * 8, 16); // Multiply by 8 because one byte is 8 bits
+    printf("Frame Header (Synchro and Textlength = %s\n", result);
+
+    for (k = 0; k < len; k++) {
+        chartobin(msg[k]);
+    }
+
+    // Calculate CRC for the message data
+    int crc_val;
+    calculateCRC(result + 36, counter - 36, &crc_val);
+
+    // Append CRC value to the binary data
+    for (int i = 0; i < 8; i++) {
+        result[counter++] = ((crc_val >> (7 - i)) & 1) ? '1' : '0';
+    }
 
     length = strlen(result);
     gettimeofday(&tval_before, NULL);
-    while(pos!=length)
-    {
+
+    while (pos != length) {
         gettimeofday(&tval_after, NULL);
         timersub(&tval_after, &tval_before, &tval_result);
-        double time_elapsed = (double)tval_result.tv_sec + ((double)tval_result.tv_usec/1000000.0f);
-        
-        while(time_elapsed < (TARGET_BIT_PERIOD_MS / 1000.0))
-        {
+        double time_elapsed = (double)tval_result.tv_sec + ((double)tval_result.tv_usec / 1000000.0f);
+
+        while (time_elapsed < 0.001) {
             gettimeofday(&tval_after, NULL);
             timersub(&tval_after, &tval_before, &tval_result);
-            time_elapsed = (double)tval_result.tv_sec + ((double)tval_result.tv_usec/1000000.0f);
+            time_elapsed = (double)tval_result.tv_sec + ((double)tval_result.tv_usec / 1000000.0f);
         }
+
         gettimeofday(&tval_before, NULL);
-        
-        if (result[pos]=='1')
-        {
-            gpiod_line_set_value(line, 1);// Set GPIO line to HIGH
+
+        if (result[pos] == '1') {
+            gpiod_line_set_value(line, 1);
             pos++;
-            }
-            
-        else if(result[pos]=='0'){
-            gpiod_line_set_value(line, 0); // Set GPIO line to LOW
+        } else if (result[pos] == '0') {
+            gpiod_line_set_value(line, 0);
             pos++;
-            }  
+        }
     }
 
-    // Cleanup libgpiod
-    gpiod_line_set_value(line, 0); // Set GPIO line to LOW
+    // Clean up
     gpiod_line_release(line);
     gpiod_chip_close(chip);
 
