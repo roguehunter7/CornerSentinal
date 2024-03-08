@@ -20,9 +20,9 @@ void int2bin(unsigned integer, int n)
 {
     for (int i = 0; i < n; i++) {
         result[counter] = (integer & (int)1 << (n - i - 1)) ? '1' : '0';
-        result[36] = '\0';
         counter++;
     }
+    result[36] = '\0';
 }
 
 int pos = 0;
@@ -49,14 +49,14 @@ int main()
     struct gpiod_line *line;
 
     // Open GPIO chip
-    chip = gpiod_chip_open("/dev/gpiochip4");
+    chip = gpiod_chip_open("/dev/gpiochip0");
     if (!chip) {
         perror("Failed to open GPIO chip");
         return 1;
     }
 
     // Get GPIO line
-    line = gpiod_chip_get_line(chip, 4);
+    line = gpiod_chip_get_line(chip, 0);
     if (!line) {
         perror("Failed to get GPIO line");
         gpiod_chip_close(chip);
@@ -78,6 +78,7 @@ int main()
     scanf("%[^\n]", msg);
     len = strlen(msg);
     int2bin(len * 8, 16); // Multiply by 8 because one byte is 8 bits
+    printf("Frame Header (Synchro and Textlength = %s\n", result);
 
     for (k = 0; k < len; k++) {
         chartobin(msg[k]);
@@ -88,8 +89,8 @@ int main()
     calculateCRC(result + 36, counter - 36, &crc_val);
 
     // Append CRC value to the binary data
-    for (int i = 0; i < 8; i++) {
-        result[counter++] = ((crc_val >> (7 - i)) & 1) ? '1' : '0';
+    for (int i = 7; i >= 0; i--) {
+        result[counter++] = ((crc_val >> i) & 1) ? '1' : '0';
     }
 
     printf("Frame Header (Synchro and Textlength and CRC) = %s\n", result);
