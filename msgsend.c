@@ -112,7 +112,7 @@ int main() {
             bitPos++;
         }
     
-    gpiod_line_set_value(line, 0)
+    gpiod_line_set_value(line, 0);
     gpiod_line_release(line);
     gpiod_chip_close(chip);
 
