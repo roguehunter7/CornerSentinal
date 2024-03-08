@@ -100,6 +100,7 @@ print("Sender socket connected")
 def receive_thread_function(client_socket_receive):
     while True:
         recv_binary_code = client_socket_receive.recv(1024).decode()
+        print(f"Received binary code: {recv_binary_code}")
         transmit_binary_data(recv_binary_code)
 
 # Function to send binary data
