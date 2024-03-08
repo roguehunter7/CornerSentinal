@@ -66,7 +66,7 @@ int main() {
         return 1;
     }
 
-    while (1) {
+    
         printf("Please input the message to send: ");
         if (fgets(input_buffer, sizeof(input_buffer), stdin) == NULL) {
             fprintf(stderr, "Error reading input: %s\n", strerror(errno));
@@ -112,7 +112,7 @@ int main() {
 
             bitPos++;
         }
-    }
+    
 
     gpiod_line_release(line);
     gpiod_chip_close(chip);
