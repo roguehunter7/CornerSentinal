@@ -76,25 +76,24 @@ frame_counter = 0
 
 
 
-# Server socket initialization on RPi1 for receiving
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server_address = ('', 8888)  # IP of RPi1
-s.bind(server_address)
-s.listen(1)
+# Server socket initialization for receiving on RPi1
+s_receive = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+receive_address = ('', 8888)  # IP of RPi1
+s_receive.bind(receive_address)
+s_receive.listen(1)
 
-# Accept connection for receiving
-s_client, _ = s.accept()
-print("Receiver socket connected")
-
-
-# Server socket initialization on RPi1 for sending
+# Server socket initialization for sending on RPi1
 s_send = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server_send_address = ('', 8000)  # Choose a different port for sending
-s_send.bind(server_send_address)
+send_address = ('', 8000)  # Choose a different port for sending
+s_send.bind(send_address)
 s_send.listen(1)
 
-# Accept connection for sending
-s_send_client, _ = s_send.accept()
+# Connect to the other RPi for receiving
+s_client_receive, _ = s_receive.accept()
+print("Receiver socket connected")
+
+# Connect to the other RPi for sending
+s_client_send, _ = s_send.accept()
 print("Sender socket connected")
 
 # Thread to receive binary data
@@ -180,11 +179,11 @@ def send_thread_function(client_socket_send, frame_counter):
         else:
             break
 
-# Start threads for receiving and sending
-receive_thread = Thread(target=receive_thread_function, args=(s_client,))
+# Start threads for receiving and sending on RPi1
+receive_thread = Thread(target=receive_thread_function, args=(s_client_receive,))
 receive_thread.start()
 
-send_thread = Thread(target=send_thread_function, args=(s_send_client, frame_counter))
+send_thread = Thread(target=send_thread_function, args=(s_client_send, frame_counter))
 send_thread.start()
 
 # Wait for the threads to finish (if needed)
@@ -194,7 +193,7 @@ receive_thread.join()
 # Release resources
 cap.release()
 # Closing the server sockets
-s_client.close()
-s_send_client.close()
+s_client_receive.close()
+s_client_send.close()
 
 cv2.destroyAllWindows()

@@ -9,11 +9,7 @@ void division(int frame_copy[], int poly[], int n, int k, int p) {
     int i = 0;
     while (i < k) {
         for (int j = 0; j < p; j++) {
-            if (frame_copy[i + j] == poly[j]) {
-                frame_copy[i + j] = 0;
-            } else {
-                frame_copy[i + j] = 1;
-            }
+            frame_copy[i + j] = (frame_copy[i + j] == poly[j]) ? 0 : 1;
         }
 
         while (i < n && frame_copy[i] != 1)
@@ -21,7 +17,7 @@ void division(int frame_copy[], int poly[], int n, int k, int p) {
     }
 }
 
-void calculateCRC(char datas[], char polys[], int n, int k, int p, int crc[]) {
+void calculateCRC(char *datas, char *polys, int n, int k, int p, int crc[]) {
     int frame_copy[n];
     int poly[p];
 
@@ -53,11 +49,11 @@ typedef struct {
 } wiremsg;
 
 void setHeaderPayloadSizeField(unsigned msgLen, wiremsg *lifiWireMsg_p) {
-    int payload_size_filed_len = sizeof(lifiWireMsg_p->payload_size);
-    for (int i = 0; i < payload_size_filed_len; i++) {
-        lifiWireMsg_p->payload_size[i] = (msgLen & (int)1 << (payload_size_filed_len - i - 1)) ? '1' : '0';
+    int payload_size_field_len = sizeof(lifiWireMsg_p->payload_size);
+    for (int i = 0; i < payload_size_field_len; i++) {
+        lifiWireMsg_p->payload_size[i] = (msgLen & (1 << (payload_size_field_len - i - 1))) ? '1' : '0';
     }
-    lifiWireMsg_p->payload_size[payload_size_filed_len] = '\0';
+    lifiWireMsg_p->payload_size[payload_size_field_len] = '\0';
 }
 
 void setPayload(unsigned msgLen, wiremsg *lifiWireMsg_p, char *input_buffer) {
@@ -79,6 +75,7 @@ void sendBinaryCode(const char *binary_code) {
     struct gpiod_line_request_config config = {
         .request_type = GPIOD_LINE_REQUEST_DIRECTION_OUTPUT,
         .flags = GPIOD_LINE_REQUEST_FLAG_OPEN_DRAIN,  // Use open drain for simplicity
+        .consumer = "lifi_consumer",  // Replace with an appropriate consumer name
     };
 
     // Open the GPIO chip for gpiochip4
@@ -112,12 +109,12 @@ void sendBinaryCode(const char *binary_code) {
         lifiWireMsg.crc[i] = crc[i] + '0';
     }
 
-    int bitPos = 0;
-    int wireMsgLen = sizeof(lifiWireMsg.preamble) + sizeof(lifiWireMsg.payload_size) + sizeof(lifiWireMsg.payload) + sizeof(lifiWireMsg.crc);
+    int bit_pos = 0;
+    int wire_msg_len = sizeof(lifiWireMsg.preamble) + sizeof(lifiWireMsg.payload_size) + sizeof(lifiWireMsg.payload) + sizeof(lifiWireMsg.crc);
 
     gettimeofday(&tval_before, NULL);
 
-    while (bitPos < wireMsgLen) {
+    while (bit_pos < wire_msg_len) {
         gettimeofday(&tval_after, NULL);
         timersub(&tval_after, &tval_before, &tval_result);
         double time_elapsed = (double)tval_result.tv_sec + ((double)tval_result.tv_usec / 1000000.0f);
@@ -130,25 +127,21 @@ void sendBinaryCode(const char *binary_code) {
 
         gettimeofday(&tval_before, NULL);
 
-        char bitToSend;
-        if (bitPos < sizeof(lifiWireMsg.preamble)) {
-            bitToSend = lifiWireMsg.preamble[bitPos];
-        } else if (bitPos < sizeof(lifiWireMsg.preamble) + sizeof(lifiWireMsg.payload_size)) {
-            bitToSend = lifiWireMsg.payload_size[bitPos - sizeof(lifiWireMsg.preamble)];
-        } else if (bitPos < sizeof(lifiWireMsg.preamble) + sizeof(lifiWireMsg.payload_size) +
+        char bit_to_send;
+        if (bit_pos < sizeof(lifiWireMsg.preamble)) {
+            bit_to_send = lifiWireMsg.preamble[bit_pos];
+        } else if (bit_pos < sizeof(lifiWireMsg.preamble) + sizeof(lifiWireMsg.payload_size)) {
+            bit_to_send = lifiWireMsg.payload_size[bit_pos - sizeof(lifiWireMsg.preamble)];
+        } else if (bit_pos < sizeof(lifiWireMsg.preamble) + sizeof(lifiWireMsg.payload_size) +
                         sizeof(lifiWireMsg.payload)) {
-            bitToSend = lifiWireMsg.payload[bitPos - sizeof(lifiWireMsg.preamble) - sizeof(lifiWireMsg.payload_size)];
+            bit_to_send = lifiWireMsg.payload[bit_pos - sizeof(lifiWireMsg.preamble) - sizeof(lifiWireMsg.payload_size)];
         } else {
-            bitToSend = lifiWireMsg.crc[bitPos - sizeof(lifiWireMsg.preamble) - sizeof(lifiWireMsg.payload_size) -
-                                       sizeof(lifiWireMsg.payload)];
+            bit_to_send = lifiWireMsg.crc[bit_pos - sizeof(lifiWireMsg.preamble) - sizeof(lifiWireMsg.payload_size) -
+                                           sizeof(lifiWireMsg.payload)];
         }
 
-        if (bitToSend == '1') {
-            gpiod_line_set_value(line, 1);
-        } else {
-            gpiod_line_set_value(line, 0);
-        }
-        bitPos++;
+        gpiod_line_set_value(line, bit_to_send == '1' ? 1 : 0);
+        bit_pos++;
     }
 
     gpiod_chip_close(chip);
@@ -156,7 +149,7 @@ void sendBinaryCode(const char *binary_code) {
 
 int main() {
     // Example usage
-    const char *binary_code = "1101101";  // Replace with your binary code
+    char binary_code = "1101101";  // Replace with your binary code
     sendBinaryCode(binary_code);
 
     return 0;
