@@ -19,7 +19,7 @@ void setup() {
   TCCR1B = 0;// same for TCCR1B
   TCNT1  = 0;//initialize counter value to 0;
   // set timer count for 1khz increments
-  OCR1A = 7999;// = (16*10^6) / (250*8) - 1        OCR1A = 2001 for 1kHz; ORCIA = 7999 for 250Hz
+  OCR1A = 2001;// = (16*10^6) / (250*8) - 1        OCR1A = 2001 for 1kHz; ORCIA = 7999 for 250Hz
   // turn on CTC mode
   TCCR1B |= (1 << WGM12);
   // Set CS11 bit for 8 prescaler
@@ -105,7 +105,7 @@ void lookForSynchro(String bit)
   String preambel="1010101111111111";
   sequence.concat(bit);
   sequence.remove(0,1);
-  Serial.println("Sequence: "+sequence);
+  // Serial.println("Sequence: "+sequence);
   if (sequence==preambel)
   {
     Serial.println("Synchro done");
