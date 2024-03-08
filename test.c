@@ -74,8 +74,8 @@ void sendBinaryCode(const char *binary_code) {
         .preamble = {'1', '0', '1', '0', '1'},  // Updated preamble to "10101"
     };
 
-    struct gpiod_line_bulk bulk;
     struct gpiod_chip *chip;
+    struct gpiod_line *line;
     struct gpiod_line_request_config config = {
         .request_type = GPIOD_LINE_REQUEST_DIRECTION_OUTPUT,
         .flags = GPIOD_LINE_REQUEST_FLAG_OPEN_DRAIN,  // Use open drain for simplicity
@@ -89,10 +89,15 @@ void sendBinaryCode(const char *binary_code) {
     }
 
     // Configure GPIO pin 4 as output
-    const unsigned int lines[] = {4};  // GPIO pin 4
-    gpiod_line_bulk_init(&bulk);
-    gpiod_chip_get_lines(chip, lines, sizeof(lines) / sizeof(lines[0]), &bulk);
-    gpiod_lines_request_bulk_output(&bulk, &config);
+    line = gpiod_chip_get_line(chip, 4);  // GPIO pin 4
+    if (!line) {
+        perror("Error getting GPIO line");
+        gpiod_chip_close(chip);
+        return;
+    }
+
+    gpiod_line_request_output(line, &config, 0);
+    gpiod_line_release(line);
 
     int msg_len = strlen(binary_code);
 
@@ -139,9 +144,9 @@ void sendBinaryCode(const char *binary_code) {
         }
 
         if (bitToSend == '1') {
-            gpiod_line_set_value_bulk(&bulk, 1);
+            gpiod_line_set_value(line, 1);
         } else {
-            gpiod_line_set_value_bulk(&bulk, 0);
+            gpiod_line_set_value(line, 0);
         }
         bitPos++;
     }
