@@ -151,8 +151,6 @@ void sendBinaryCode(const char *binary_code) {
         bitPos++;
     }
 
-    // Close the GPIO chip and lines
-    gpiod_line_release_bulk(&bulk);
     gpiod_chip_close(chip);
 }
 
