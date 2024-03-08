@@ -56,7 +56,7 @@ def display_warning_message(frame, binary_code):
     cv2.putText(frame, warning_message, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
 
 # Load the YOLOv8 model
-model = YOLO('train3/weights/best.onnx', task='detect')
+model = YOLO('train3/weights/best.pt')
 
 # Open the video file
 video_path = "test_images/leftside.mp4"
@@ -78,13 +78,13 @@ frame_counter = 0
 
 # Server socket initialization for receiving on RPi1
 s_receive = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-receive_address = ('', 8888)  # IP of RPi1
+receive_address = ('', 12345)  # IP of RPi1
 s_receive.bind(receive_address)
 s_receive.listen(1)
 
 # Server socket initialization for sending on RPi1
 s_send = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-send_address = ('', 8000)  # Choose a different port for sending
+send_address = ('', 12346)  # Choose a different port for sending
 s_send.bind(send_address)
 s_send.listen(1)
 
@@ -120,7 +120,7 @@ def send_thread_function(client_socket_send, frame_counter):
 
             # Check if YOLO inference should be performed on this frame
             if frame_counter % 2 == 0:
-                results = model.track(frame, persist=True, tracker='botsort.yaml', imgsz=(320, 320), int8=True, conf=0.20)
+                results = model.track(frame, persist=True, tracker='bytetrack.yaml', imgsz=320 , int8=True, conf=0.20)
                 annotated_frame = results[0].plot()
 
                 if results[0].boxes.id is not None:
