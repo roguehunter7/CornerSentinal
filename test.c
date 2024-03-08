@@ -78,7 +78,7 @@ void sendBinaryCode(const char *binary_code) {
     struct gpiod_chip *chip;
     struct gpiod_line_request_config config = {
         .request_type = GPIOD_LINE_REQUEST_DIRECTION_OUTPUT,
-        .flags = GPIOD_CTXLESS,  // Use contextless mode for simplicity
+        .flags = GPIOD_LINE_REQUEST_FLAG_OPEN_DRAIN,  // Use open drain for simplicity
     };
 
     // Open the GPIO chip for gpiochip4
