@@ -136,6 +136,7 @@ def send_thread_function(client_socket_send, frame_counter):
 
                             # Transmit only if the binary code is different from the previous one
                             if binary_code != prev_binary_code:
+                                print(f"Sending binary code: {binary_code}")
                                 send_binary_data(client_socket_send, binary_code)
                                 prev_binary_code = binary_code
                             
