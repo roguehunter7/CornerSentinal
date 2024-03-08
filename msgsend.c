@@ -49,14 +49,14 @@ int main()
     struct gpiod_line *line;
 
     // Open GPIO chip
-    chip = gpiod_chip_open("/dev/gpiochip0");
+    chip = gpiod_chip_open("/dev/gpiochip4");
     if (!chip) {
         perror("Failed to open GPIO chip");
         return 1;
     }
 
     // Get GPIO line
-    line = gpiod_chip_get_line(chip, 0);
+    line = gpiod_chip_get_line(chip, 4);
     if (!line) {
         perror("Failed to get GPIO line");
         gpiod_chip_close(chip);
