@@ -73,7 +73,7 @@ int main() {
     scanf("%8hx", &msg);
 
     for (int i = 0; i < MSG_LEN; i++) {
-        frame[i] = (msg >> (MSG_LEN - 1 - i)) & 1;
+        frame[i] = ((msg[MSG_LEN - 1 - i / 8] >> (i % 8)) & 1);
     }
 
     calculate_crc(frame, MSG_LEN);
