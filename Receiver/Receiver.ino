@@ -1,117 +1,111 @@
-#include <Arduino.h>
-#include <string.h>
+#include <util/atomic.h>
 
-// Global variables
-static unsigned int StateType;
-String bitSequence = "";
-int payloadLen = 0;
-int HEADER_LEN = 16;
-enum StateType { waitingPreamble, receivingData };
+#define PREAMBLE 0x15 // Binary: 10101
+#define MSG_LEN 8
+#define CRC_LEN 3
+#define FRAME_LEN (MSG_LEN + CRC_LEN)
+#define TOTAL_LEN (FRAME_LEN + 5)
 
-void setup() {
-    // Setup timer interrupts for sampling of received bits
-    cli(); // Clear interrupts
+volatile unsigned char frame[FRAME_LEN];
+volatile unsigned char preamble_buffer;
+volatile unsigned int bit_count = 0;
+volatile bool preamble_received = false;
+volatile bool frame_received = false;
 
-    // Timer Register Inits
-    TCCR1A = 0; // Set entire TCCR1A register to 0
-    TCCR1B = 0; // Same for TCCR1B
-    TCNT1 = 0;  // Initialize counter value to 0
+void calculate_crc(unsigned char *data, int len) {
+    unsigned char crc = 0;
+    unsigned char polynomial = 0xB; // x^3 + x + 1
 
-    // Set timer1 interrupt at 1kHz
-    // Set timer count for 1kHz increments
-    OCR1A = 2001; // = (16*10^6) / (1000*8) - 1 = 2001 for 1kHz
-
-    // Turn on CTC mode
-    TCCR1B |= (1 << WGM12);
-
-    // Set CS11 bit for 8 prescaler
-    TCCR1B |= (1 << CS11);
-
-    // Enable timer compare interrupt
-    TIMSK1 |= (1 << OCIE1A);
-
-    sei(); // Enable interrupts
-
-    Serial.begin(9600);
-
-    // Input Pin for the Solar Cell
-    pinMode(A0, INPUT);
-
-    // Set state to unsynchronized (looking for preamble)
-    StateType = waitingPreamble;
-}
-
-// Timer interrupt handler
-ISR(TIMER1_COMPA_vect) {
-    String bit;
-    int solarCellAnalogValue = analogRead(A0);
-    float voltageQuantize = solarCellAnalogValue * (5.0 / 1023.0);
-
-    if (voltageQuantize >= 1) {
-        bit = "1";
-    } else {
-        bit = "0";
+    for (int i = 0; i < len; i++) {
+        crc ^= (data[i] << (CRC_LEN - 1));
+        for (int j = 0; j < CRC_LEN; j++) {
+            if (crc & 0x80) {
+                crc = (crc << 1) ^ polynomial;
+            } else {
+                crc = (crc << 1);
+            }
+        }
     }
 
-    // This is the "real" loop function
-    switch (StateType) {
-    case waitingPreamble:
-        // Look for preamble
-        checkForPreamble(bit);
-        break;
-    case receivingData:
-        receiveData(bit);
-        break;
+    for (int i = 0; i < CRC_LEN; i++) {
+        if (crc & (1 << (CRC_LEN - 1 - i))) {
+            frame[len + i] = 1;
+        } else {
+            frame[len + i] = 0;
+        }
+    }
+}
+
+void setup() {
+    Serial.begin(9600);
+
+    // Configure pin A0 as input
+    pinMode(A0, INPUT);
+
+    // Timer0 setup for bit sampling
+    TCCR0A = 0;
+    TCCR0B = 0;
+    TCNT0 = 0;
+    OCR0A = 99; // 1 millisecond delay at 16 MHz clock
+    TCCR0A |= (1 << WGM01); // CTC mode
+    TCCR0B |= (1 << CS01); // Prescaler = 8
+    TIMSK0 |= (1 << OCIE0A); // Enable Timer0 Compare Match A Interrupt
+
+    sei(); // Enable global interrupts
+}
+
+ISR(TIMER0_COMPA_vect) {
+    ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        int sensorValue = analogRead(A0);
+        Serial.println(sensorValue);
+        bool bit = sensorValue >= 512; // Threshold at 2.5V
+
+        if (!preamble_received) {
+            preamble_buffer = (preamble_buffer << 1) | bit;
+            if (bit_count == 4) {
+                bit_count = 0;
+                if (preamble_buffer == PREAMBLE) {
+                    preamble_received = true;
+                }
+                preamble_buffer = 0;
+            } else {
+                bit_count++;
+            }
+        } else if (!frame_received) {
+            for (int i = 0; i < FRAME_LEN; i++) {
+                frame[i] = (frame[i] << 1) | bit;
+            }
+            if (++bit_count == TOTAL_LEN) {
+                frame_received = true;
+                bit_count = 0;
+            }
+        }
     }
 }
 
 void loop() {
-    // Put your main code here, to run repeatedly
-}
+    if (frame_received) {
+        frame_received = false;
+        unsigned char msg[MSG_LEN];
+        memcpy(msg, frame, MSG_LEN);
 
-void checkForPreamble(String bit) {
-    String preamble = "10101010101111111111";
-    bitSequence.concat(bit);
-    if (bitSequence.length() > preamble.length())
-        bitSequence.remove(0, 1);
-
-    if (bitSequence == preamble) {
-        Serial.println("Synchronization done");
-        StateType = receivingData;
-        bitSequence = "";
-    }
-}
-
-void receiveData(String bit) {
-    bitSequence.concat(bit);
-
-    if (bitSequence.length() == HEADER_LEN) {
-        char charArray[HEADER_LEN + 1];
-        bitSequence.toCharArray(charArray, HEADER_LEN + 1);
-        payloadLen = strtol(charArray, NULL, 2);
-    }
-
-    if (bitSequence.length() == payloadLen + HEADER_LEN) // Received the entire message
-    {
-        // Decode the ASCII from binary
-        String output = "";
-        for (int i = HEADER_LEN / 8; i < (bitSequence.length() / 8); i++) {
-            String pl = "";
-            for (int l = i * 8; l < 8 * (i + 1); l++)
-                pl += bitSequence[l];
-
-            int n = 0;
-            for (int j = 0; j < 8; j++) {
-                int x = (int)(pl[j]) - (int)'0';
-                for (int k = 0; k < 7 - j; k++)
-                    x *= 2;
-                n += x;
+        bool crc_valid = true;
+        calculate_crc(msg, MSG_LEN);
+        for (int i = 0; i < CRC_LEN; i++) {
+            if (frame[MSG_LEN + i] != msg[MSG_LEN + i]) {
+                crc_valid = false;
+                break;
             }
-            output += (char)n;
         }
 
-        Serial.println(output);
-        bitSequence = "";
-        StateType = waitingPreamble;
+        if (crc_valid) {
+            Serial.print("Received message: 0x");
+            for (int i = 0; i < MSG_LEN; i++) {
+                Serial.print(msg[i], HEX);
+            }
+            Serial.println();
+        } else {
+            Serial.println("CRC error: message corrupted");
+        }
     }
 }
