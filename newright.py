@@ -153,6 +153,7 @@ while cap.isOpened():
                             is_wrong_side = False 
                         else: 
                             is_wrong_side = True 
+                        
                         binary_code = generate_binary_code(class_id[i], speed, is_stationary, is_wrong_side)
                         
                         display_warning_message(annotated_frame, binary_code)
@@ -160,8 +161,9 @@ while cap.isOpened():
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
                         roi = frame[int(y):int(y + h), int(x):int(x + w)]
                         if binary_code != prev_binary_code:
-                                s_send.sendall(binary_code.encode())
-                                prev_binary_code = binary_code
+                            print("binary code to be sent:",binary_code)
+                            s_send.sendall(binary_code.encode())
+                            prev_binary_code = binary_code
 
                         if prev_frame is not None and prev_pts is not None:
                             prev_frame_resized = cv2.resize(prev_frame, (roi.shape[1], roi.shape[0]))

@@ -40,12 +40,12 @@ s_send.bind(send_address)
 s_send.listen(1)
 
 # Connect to the other RPi for receiving
-s_client_receive, _ = s_receive.accept()
-print("Receiver socket connected")
+s_client_send, _ = s_receive.accept()
+print("Sender socket connected")
 
 # Connect to the other RPi for sending
-s_client_send, _ = s_send.accept()
-print("Sender socket connected")
+s_client_receive, _ = s_send.accept()
+print("Receiver socket connected")
 
 # Function to calculate Euclidean distance
 def calculate_distance(point1, point2):
@@ -170,6 +170,7 @@ while cap.isOpened():
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
                         roi = frame[int(y):int(y + h), int(x):int(x + w)]
                         if binary_code != prev_binary_code:
+                                print("binary code to be sent:",binary_code)
                                 s_client_send.sendall(binary_code.encode())
                                 prev_binary_code = binary_code
 
