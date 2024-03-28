@@ -16,6 +16,14 @@ model = YOLO('train3/weights/best.pt')
 video_path = "test_images/rightside.mp4"
 cap = cv2.VideoCapture(video_path)
 
+
+ld = LineDrawerGUI(video_path)
+print("Line coordinates:", ld.line_coords)
+print("Options:", ld.option_val)
+ld2 = LaneDetector(video_path, ld.line_coords)
+print("ld.line coords:",ld.line_coords)
+ld2.calculate_all_points()
+
 # Client socket initialization on RPi2
 receive_address = ('192.168.1.1', 12345)  # IP of RPi1
 s_receive = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -29,13 +37,6 @@ s_send.connect(send_address)
 VIDEO_FPS = int(cap.get(cv2.CAP_PROP_FPS))
 FACTOR_KM = 3.6
 LATENCY_FPS = VIDEO_FPS / 2
-
-ld = LineDrawerGUI(video_path)
-print("Line coordinates:", ld.line_coords)
-print("Options:", ld.option_val)
-ld2 = LaneDetector(video_path, ld.line_coords)
-print("ld.line coords:",ld.line_coords)
-ld2.calculate_all_points()
 
 # Function to calculate Euclidean distance
 def calculate_distance(point1, point2):
@@ -94,20 +95,6 @@ send_queue = queue.Queue()
 # Flag to indicate whether the program should continue running
 running = True
 
-# Function to send binary code to the other Raspberry Pi
-def send_binary_code(sock):
-    while True:
-        try:
-            binary_code = send_queue.get(block=True)
-            if binary_code == "STOP":
-                break
-            sock.sendall(binary_code.encode())
-        except Exception as e:
-            print(f"Error sending binary code: {e}")
-            break
-
-    sock.close()
-
 # Function to receive binary code from the other Raspberry Pi
 def receive_binary_code(conn):
     global running
@@ -128,7 +115,7 @@ def receive_binary_code(conn):
     conn.close()
 
 # Function to process video frames
-def process_video():
+def process_video(sock):
     global running
     # Placeholder for the previous frame and points for optical flow
     prev_frame = None
@@ -187,7 +174,7 @@ def process_video():
                             roi = frame_gray[int(y):int(y + h), int(x):int(x + w)]
 
                             if binary_code != prev_binary_code:
-                                send_queue.put(binary_code)
+                                sock.sendall((binary_code).encode())
                                 prev_binary_code = binary_code
 
                             if prev_frame is not None and prev_pts is not None:
@@ -214,21 +201,19 @@ def process_video():
             break
 
     # Send a signal to stop the other threads
-    send_queue.put("STOP")
+    sock.sendall(("STOP").encode())
     running = False
+    sock.close()
 
 # Start the threads
 receive_thread = threading.Thread(target=receive_binary_code,args = (s_receive,))
-send_thread = threading.Thread(target=send_binary_code, args=(s_send,))
-video_thread = threading.Thread(target=process_video)
+video_thread = threading.Thread(target=process_video, args=(s_send,))
 
 receive_thread.start()
-send_thread.start()
 video_thread.start()
 
 # Wait for the threads to finish
 video_thread.join()
-send_thread.join()
 receive_thread.join()
 
 # Close Sockets
