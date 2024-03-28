@@ -177,9 +177,7 @@ receive_thread.start()
 send_thread = Thread(target=send_thread_function, args=(s_send, frame_counter))
 send_thread.start()
 
-# Wait for the threads to finish (if needed)
-send_thread.join()
-receive_thread.join()
+
 
 # Release resources
 cap.release()
