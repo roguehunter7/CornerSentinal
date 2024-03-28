@@ -88,7 +88,7 @@ running = True
 # Function to send binary code to the other Raspberry Pi
 def send_binary_code():
     server_ip = '192.168.1.1'  # Replace with the IP address of the other Raspberry Pi
-    server_port = 8000
+    server_port = 9000
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((server_ip, server_port))
@@ -109,7 +109,7 @@ def send_binary_code():
 def receive_binary_code():
     global running
 
-    server_ip = '192.168.1.2'  # Replace with the IP address of this Raspberry Pi
+    server_ip = ''  # Replace with the IP address of this Raspberry Pi
     server_port = 8000
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -224,12 +224,14 @@ def process_video():
     running = False
 
 # Start the threads
-send_thread = threading.Thread(target=send_binary_code)
 receive_thread = threading.Thread(target=receive_binary_code)
+# Wait for a short time to allow the receive_binary_code thread to start
+time.sleep(2)
+send_thread = threading.Thread(target=send_binary_code)
 video_thread = threading.Thread(target=process_video)
 
-send_thread.start()
 receive_thread.start()
+send_thread.start()
 video_thread.start()
 
 # Wait for the threads to finish
