@@ -115,10 +115,9 @@ def receive_binary_code():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind((server_ip, server_port))
     sock.listen(1)
-
+    conn, addr = sock.accept()
     while running:
         try:
-            conn, addr = sock.accept()
             data = conn.recv(1024)
             binary_code = data.decode()
             if binary_code == "STOP":
