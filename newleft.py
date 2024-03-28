@@ -116,7 +116,6 @@ def send_thread_function(client_socket_send, frame_counter):
     while cap.isOpened():
         success, frame = cap.read()
         if success:
-            frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
             # Check if YOLO inference should be performed on this frame
             if frame_counter % 2 == 0:
@@ -156,7 +155,7 @@ def send_thread_function(client_socket_send, frame_counter):
                             display_warning_message(annotated_frame, binary_code)
                             cv2.putText(annotated_frame, f"Speed: {speed:.2f} km/h", (int(x), int(y) - 10),
                                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-                            roi = frame_gray[int(y):int(y + h), int(x):int(x + w)]
+                            roi = frame[int(y):int(y + h), int(x):int(x + w)]
 
                             if prev_frame is not None and prev_pts is not None:
                                 prev_frame_resized = cv2.resize(prev_frame, (roi.shape[1], roi.shape[0]))
