@@ -6,6 +6,7 @@ from ultralytics import YOLO
 from lanedetector import *
 import numpy as np
 from send import *
+import threading
 
 # Load the YOLOv8 model
 model = YOLO('train3/weights/best.pt')
@@ -97,6 +98,22 @@ prev_pts = None
 prev_binary_code = None
 recv_binary_code = None
 
+# Function to handle receiving data from the client socket
+def receive_data_from_client(s_client_receive):
+    while True:
+        try:
+            recv_binary_code = s_client_receive.recv(1024).decode()
+            if recv_binary_code:
+                transmit_binary_data(recv_binary_code)
+        except KeyboardInterrupt:
+            print("Keyboard interrupt detected.")
+            break
+
+# Create and start a thread for receiving data
+receive_thread = threading.Thread(target=receive_data_from_client, args=(s_receive,))
+receive_thread.daemon = True  # Set as a daemon thread so it terminates when the main program exits
+receive_thread.start()
+
 while cap.isOpened():
     success, frame = cap.read()
 
@@ -162,9 +179,6 @@ while cap.isOpened():
 
     # Increment frame counter
     frame_counter += 1
-    recv_binary_code = s_receive.recv(1024).decode()
-    if recv_binary_code:
-        transmit_binary_data(recv_binary_code)
     cv2.imshow("Frame", annotated_frame)   
     if cv2.waitKey(1) & 0xFF == ord("q"):
         break
