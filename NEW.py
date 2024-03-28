@@ -1,9 +1,9 @@
 from collections import defaultdict
 import cv2
-import numpy as np
 import time
 from ultralytics import YOLO
 from lanedetector import *
+import numpy as np
 from send import *
 
 # Load the YOLOv8 model
