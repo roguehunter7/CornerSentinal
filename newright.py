@@ -83,9 +83,13 @@ send_address = ('192.168.1.1', 12346)  # Choose a different port for sending
 s_send = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s_send.connect(send_address)
 
+# Flag to signal when to stop the threads
+stop_threads = False
+
 # Thread to receive binary data
 def receive_thread_function(client_socket_receive):
-    while True:
+    global stop_threads
+    while not stop_threads:
         recv_binary_code = client_socket_receive.recv(1024).decode()
         print(f"Received binary code: {recv_binary_code}")
         transmit_binary_data(recv_binary_code)
@@ -93,82 +97,83 @@ def receive_thread_function(client_socket_receive):
 # Function to send binary data
 def send_binary_data(client_socket, binary_code):
     client_socket.sendall(binary_code.encode())
-    
+
 # Thread to send binary data
 def send_thread_function(client_socket_send, frame_counter):
     # Placeholder for the previous frame and points for optical flow
     prev_frame = None
     prev_pts = None
     prev_binary_code = None
-    while cap.isOpened():
+    global stop_threads
+    while cap.isOpened() and not stop_threads:
         success, frame = cap.read()
-        
-        if success:
-            frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            
-            # Check if YOLO inference should be performed on this frame
-            if frame_counter % 2 == 0:
-                results = model.track(frame, persist=True, tracker='bytetrack.yaml', imgsz=320 , int8=True, conf=0.20)
-                annotated_frame = results[0].plot()
 
-                if results[0].boxes.id is not None:
-                    boxes = results[0].boxes.xywh.cpu().numpy().astype(int)
-                    class_id = results[0].boxes.cls.cpu().numpy().astype(int)
-                    track_ids = results[0].boxes.id.cpu().numpy().astype(int)
+        if not success:  # If the video has ended
+            break  # Exit the loop
 
-                    for i, box in enumerate(boxes):
-                        x, y, w, h = box
-                        track = track_history[track_ids[i]]
-                        track.append((float(x + w / 2), float(y + h / 2)))
+        frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-                        if len(track) >= 2 and track[-2][1] < track[-1][1]:
-                            distances = [calculate_distance(track[j], track[j + 1]) for j in range(len(track) - 1)]
+        # Check if YOLO inference should be performed on this frame
+        if frame_counter % 2 == 0:
+            results = model.track(frame, persist=True, tracker='bytetrack.yaml', imgsz=320 , int8=True, conf=0.20)
+            annotated_frame = results[0].plot()
 
-                            speed = calculate_speed(distances, FACTOR_KM, LATENCY_FPS)
-                            is_stationary = speed < 1.0
-                            stationary_timers[track_ids[i]] = time.time() if not is_stationary else stationary_timers[
-                                track_ids[i]]
+            if results[0].boxes.id is not None:
+                boxes = results[0].boxes.xywh.cpu().numpy().astype(int)
+                class_id = results[0].boxes.cls.cpu().numpy().astype(int)
+                track_ids = results[0].boxes.id.cpu().numpy().astype(int)
 
-                            if time.time() - stationary_timers[track_ids[i]] > 10.0:
-                                is_stationary = True
+                for i, box in enumerate(boxes):
+                    x, y, w, h = box
+                    track = track_history[track_ids[i]]
+                    track.append((float(x + w / 2), float(y + h / 2)))
 
-                            is_wrong_side = False
-                            binary_code = generate_binary_code(class_id[i], speed, is_stationary, is_wrong_side)
+                    if len(track) >= 2 and track[-2][1] < track[-1][1]:
+                        distances = [calculate_distance(track[j], track[j + 1]) for j in range(len(track) - 1)]
 
-                            # Transmit only if the binary code is different from the previous one
-                            if binary_code != prev_binary_code:
-                                print(f"Sending binary code: {binary_code}")
-                                send_binary_data(client_socket_send, binary_code)
-                                prev_binary_code = binary_code
-                            
-                            display_warning_message(annotated_frame, binary_code)
-                            cv2.putText(annotated_frame, f"Speed: {speed:.2f} km/h", (int(x), int(y) - 10),
-                                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-                            roi = frame_gray[int(y):int(y + h), int(x):int(x + w)]
-    
-                            if prev_frame is not None and prev_pts is not None:
-                                prev_frame_resized = cv2.resize(prev_frame, (roi.shape[1], roi.shape[0]))
-                                flow = cv2.calcOpticalFlowPyrLK(prev_frame_resized, roi, prev_pts, None,
+                        speed = calculate_speed(distances, FACTOR_KM, LATENCY_FPS)
+                        is_stationary = speed < 1.0
+                        stationary_timers[track_ids[i]] = time.time() if not is_stationary else stationary_timers[
+                            track_ids[i]]
+
+                        if time.time() - stationary_timers[track_ids[i]] > 10.0:
+                            is_stationary = True
+
+                        is_wrong_side = False
+                        binary_code = generate_binary_code(class_id[i], speed, is_stationary, is_wrong_side)
+
+                        # Transmit only if the binary code is different from the previous one
+                        if binary_code != prev_binary_code:
+                            print(f"Sending binary code: {binary_code}")
+                            send_binary_data(client_socket_send, binary_code)
+                            prev_binary_code = binary_code
+
+                        display_warning_message(annotated_frame, binary_code)
+                        cv2.putText(annotated_frame, f"Speed: {speed:.2f} km/h", (int(x), int(y) - 10),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+                        roi = frame_gray[int(y):int(y + h), int(x):int(x + w)]
+
+                        if prev_frame is not None and prev_pts is not None:
+                            prev_frame_resized = cv2.resize(prev_frame, (roi.shape[1], roi.shape[0]))
+                            flow = cv2.calcOpticalFlowPyrLK(prev_frame_resized, roi, prev_pts, None,
                                                             winSize=(15, 15), maxLevel=2)
-                                flow_distances = np.sqrt(np.sum((prev_pts - flow[0]) ** 2, axis=2))
+                            flow_distances = np.sqrt(np.sum((prev_pts - flow[0]) ** 2, axis=2))
 
-                                for j in range(len(flow_distances)):
-                                    if flow_distances[j] > 0.5:
-                                        x1, y1 = prev_pts[j].astype(int).ravel()
-                                        x2, y2 = (x + flow[0][j][0], y + flow[0][j][1]).astype(int)
-                                        cv2.line(annotated_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                                prev_frame = roi
-                                prev_pts = np.array([[(int(w / 2), int(h / 2))]], dtype=np.float32)
+                            for j in range(len(flow_distances)):
+                                if flow_distances[j] > 0.5:
+                                    x1, y1 = prev_pts[j].astype(int).ravel()
+                                    x2, y2 = (x + flow[0][j][0], y + flow[0][j][1]).astype(int)
+                                    cv2.line(annotated_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                            prev_frame = roi
+                            prev_pts = np.array([[(int(w / 2), int(h / 2))]], dtype=np.float32)
 
-            # Increment frame counter
-            frame_counter += 1
-            cv2.imshow("Frame", annotated_frame)
+        # Increment frame counter
+        frame_counter += 1
+        cv2.imshow("Frame", annotated_frame)
 
-            if cv2.waitKey(1) & 0xFF == ord("q"):
-                break
-        else:
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            stop_threads = True
             break
-
 
 # Start threads for receiving and sending
 receive_thread = Thread(target=receive_thread_function, args=(s_receive,))
@@ -177,7 +182,13 @@ receive_thread.start()
 send_thread = Thread(target=send_thread_function, args=(s_send, frame_counter))
 send_thread.start()
 
-# Wait for the threads to finish (if needed)
+# Wait for the user to press 'q' to exit
+while True:
+    if cv2.waitKey(1) & 0xFF == ord("q"):
+        stop_threads = True
+        break
+
+# Wait for the threads to finish
 send_thread.join()
 receive_thread.join()
 
