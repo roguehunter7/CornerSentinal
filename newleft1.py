@@ -21,6 +21,26 @@ VIDEO_FPS = int(cap.get(cv2.CAP_PROP_FPS))
 FACTOR_KM = 3.6
 LATENCY_FPS = VIDEO_FPS / 2
 
+# Server socket initialization for receiving on RPi1
+s_receive = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+receive_address = ('', 12345)  # IP of RPi1
+s_receive.bind(receive_address)
+s_receive.listen(1)
+
+# Server socket initialization for sending on RPi1
+s_send = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+send_address = ('', 12346)  # Choose a different port for sending
+s_send.bind(send_address)
+s_send.listen(1)
+
+# Connect to the other RPi for receiving
+s_client_receive, _ = s_receive.accept()
+print("Receiver socket connected")
+
+# Connect to the other RPi for sending
+s_client_send, _ = s_send.accept()
+print("Sender socket connected")
+
 ld = LineDrawerGUI(video_path)
 print("Line coordinates:", ld.line_coords)
 print("Options:", ld.option_val)
@@ -86,13 +106,7 @@ send_queue = queue.Queue()
 running = True
 
 # Function to send binary code to the other Raspberry Pi
-def send_binary_code():
-    server_ip = '192.168.1.2'  # Replace with the IP address of the other Raspberry Pi
-    server_port = 8000
-
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect((server_ip, server_port))
-
+def send_binary_code(sock):
     while True:
         try:
             binary_code = send_queue.get(block=True)
@@ -106,31 +120,23 @@ def send_binary_code():
     sock.close()
 
 # Function to receive binary code from the other Raspberry Pi
-def receive_binary_code():
+def receive_binary_code(sock):
     global running
-
-    server_ip = ''  # Replace with the IP address of this Raspberry Pi
-    server_port = 9000
-
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.bind((server_ip, server_port))
-    sock.listen(1)
-    conn, addr = sock.accept()
     
     while running:
         try:
-            data = conn.recv(1024)
+            data = sock.recv(1024)
             binary_code = data.decode()
             if binary_code == "STOP":
                 running = False
             else:
                 print(f"Received binary code: {binary_code}")
                 transmit_binary_data(binary_code)
-            conn.close()
+                
         except Exception as e:
             print(f"Error receiving binary code: {e}")
             break
-
+    
     sock.close()
 
 # Function to process video frames
@@ -224,10 +230,8 @@ def process_video():
     running = False
 
 # Start the threads
-receive_thread = threading.Thread(target=receive_binary_code)
-# Wait for a short time to allow the receive_binary_code thread to start
-time.sleep(2)
-send_thread = threading.Thread(target=send_binary_code)
+receive_thread = threading.Thread(target=receive_binary_code,args = (s_client_receive,))
+send_thread = threading.Thread(target=send_binary_code, args=(s_client_send,))
 video_thread = threading.Thread(target=process_video)
 
 receive_thread.start()
@@ -239,6 +243,9 @@ video_thread.join()
 send_thread.join()
 receive_thread.join()
 
+# Close Sockets
+s_receive.close()
+s_send.close()
 # Release resources
 cap.release()
 cv2.destroyAllWindows()
