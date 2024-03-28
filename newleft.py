@@ -106,11 +106,10 @@ prev_pts = None
 
 # Placeholder for the previous binary code
 prev_binary_code = None
+recv_binary_code = None
 
 while cap.isOpened():
     success, frame = cap.read()
-    binary_code = s_client_receive.recv(1024).decode()
-    transmit_binary_data(binary_code)
     if success:
 
         # Check if YOLO inference should be performed on this frame
@@ -171,12 +170,14 @@ while cap.isOpened():
                             prev_frame = roi
                             prev_pts = np.array([[(int(w / 2), int(h / 2))]], dtype=np.float32)
 
-        # Increment frame counter
-        frame_counter += 1
-        cv2.imshow("Frame", annotated_frame)
-        
-        if cv2.waitKey(1) & 0xFF == ord("q"):
-            break
+    # Increment frame counter
+    frame_counter += 1
+    recv_binary_code = s_client_receive.recv(1024).decode()
+    if recv_binary_code:
+        transmit_binary_data(recv_binary_code)
+    cv2.imshow("Frame", annotated_frame)   
+    if cv2.waitKey(1) & 0xFF == ord("q"):
+        break
     else:
         break
 
