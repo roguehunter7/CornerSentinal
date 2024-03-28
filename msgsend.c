@@ -1,93 +1,122 @@
 #include <stdio.h>
-#include <gpiod.h>
 #include <sys/time.h>
+#include <string.h>
+#include <gpiod.h>
 
-#define PREAMBLE 0x15 // Binary: 10101
-#define MSG_LEN 8
-#define CRC_LEN 3
-#define FRAME_LEN (MSG_LEN + CRC_LEN)
-#define TOTAL_LEN (FRAME_LEN + 5)
+#define preambleSize 5
+#define binaryCodeSize 8
+#define crcCodeSize 3
 
-unsigned char frame[FRAME_LEN];
+char result[16] = {'1', '0', '1', '0', '1'};
+int counter = preambleSize;
+int pos = 0;
 
-void calculate_crc(unsigned char *data, int len) {
-    unsigned char crc = 0;
-    unsigned char polynomial = 0xB; // x^3 + x + 1
+void CalculateCRC(char dataFrame[]) {
+    int polynom[4] = {1, 0, 1, 1};
+    int k = preambleSize;
+    int p = 4; // length of polynom
+    int frame[8] = {0}; // n=k+p-1 buffer frame with perfect size for CRC
 
-    for (int i = 0; i < len; i++) {
-        crc ^= (data[i] << (CRC_LEN - 1));
-        for (int j = 0; j < CRC_LEN; j++) {
-            if (crc & 0x80) {
-                crc = (crc << 1) ^ polynomial;
+    // Copy directly from the binary input string
+    for (int i = 0; i < k; i++) {
+        frame[i] = dataFrame[i] - '0'; // converts a char number to the corresponding int number
+    }
+
+    // make the division
+    int i = 0;
+    while (i < k) {
+        for (int j = 0; j < p; j++) {
+            if (frame[i + j] == polynom[j]) {
+                frame[i + j] = 0;
             } else {
-                crc = (crc << 1);
+                frame[i + j] = 1;
             }
         }
+        while (i < 16 && frame[i] != 1)
+            i++;
     }
 
-    for (int i = 0; i < CRC_LEN; i++) {
-        frame[len + i] = (crc & (1 << (CRC_LEN - 1 - i))) ? 1 : 0;
-    }
-}
-
-void delay_ms(double ms) {
-    struct timeval tval_before, tval_after, tval_result;
-    gettimeofday(&tval_before, NULL);
-
-    while (1) {
-        gettimeofday(&tval_after, NULL);
-        timersub(&tval_after, &tval_before, &tval_result);
-        double time_elapsed = (double)tval_result.tv_sec + ((double)tval_result.tv_usec / 1000000.0f);
-
-        if (time_elapsed >= ms / 1000.0)
-            break;
+    // CRC
+    for (int j = k; j - k < p - 1; j++) {
+        result[j] = (frame[j] == 1) ? '1' : '0';
     }
 }
 
 int main() {
+    struct timeval tval_before, tval_after, tval_result;
+
+    // Initialize GPIO using libgpiod
     struct gpiod_chip *chip;
     struct gpiod_line *line;
+    int ret;
 
     chip = gpiod_chip_open("/dev/gpiochip4");
     if (!chip) {
-        perror("Failed to open GPIO chip");
+        perror("Error opening GPIO chip");
         return 1;
     }
 
-    line = gpiod_chip_get_line(chip, 4);
+    line = gpiod_chip_get_line(chip, 4); // Replace 4 with the actual GPIO pin number
     if (!line) {
-        perror("Failed to get GPIO line");
+        perror("Error getting GPIO line");
         gpiod_chip_close(chip);
         return 1;
     }
 
-    if (gpiod_line_request_output(line, "example", 0) < 0) {
-        perror("Failed to configure GPIO line as output");
-        gpiod_line_release(line);
-        gpiod_chip_close(chip);
+    // Read binary code
+    char binaryCode[9]; // 8 bits + '\0'
+    printf("\nEnter the 8-bit Binary Code: ");
+    scanf("%8s", binaryCode);
+
+    if (strlen(binaryCode) != binaryCodeSize) {
+        fprintf(stderr, "Invalid binary code length. Please enter exactly 8 bits.\n");
         return 1;
     }
 
-    unsigned char msg[MSG_LEN];
-    printf("Enter an 8-bit binary code: ");
-    scanf("%8hx", &msg);
-
-    for (int i = 0; i < MSG_LEN; i++) {
-        frame[i] = ((msg[MSG_LEN - 1 - i / 8] >> (i % 8)) & 1);
+    // Copy directly to the result array
+    for (int i = 0; i < binaryCodeSize; i++) {
+        result[counter] = binaryCode[i];
+        counter++;
     }
 
-    calculate_crc(frame, MSG_LEN);
+    // CRC Calculation
+    CalculateCRC(result);
 
-    for (int i = 0; i < 5; i++) {
-        gpiod_line_set_value(line, (PREAMBLE >> (4 - i)) & 1);
-        delay_ms(1);
+    // Display the message to be transmitted
+    printf("Message to be transmitted: %s\n", result);
+
+    gettimeofday(&tval_before, NULL);
+
+    while (pos < 16) {
+        gettimeofday(&tval_after, NULL);
+        timersub(&tval_after, &tval_before, &tval_result);
+        double time_elapsed = (double)tval_result.tv_sec + ((double)tval_result.tv_usec / 1000000.0f);
+
+        while (time_elapsed < 0.001) {
+            gettimeofday(&tval_after, NULL);
+            timersub(&tval_after, &tval_before, &tval_result);
+            time_elapsed = (double)tval_result.tv_sec + ((double)tval_result.tv_usec / 1000000.0f);
+        }
+        gettimeofday(&tval_before, NULL);
+
+        if (result[pos] == '1') {
+            ret = gpiod_line_set_value(line, 1);
+            if (ret < 0) {
+                perror("Error setting GPIO value");
+                break;
+            }
+            pos++;
+        } else if (result[pos] == '0') {
+            ret = gpiod_line_set_value(line, 0);
+            if (ret < 0) {
+                perror("Error setting GPIO value");
+                break;
+            }
+            pos++;
+        }
     }
 
-    for (int i = 0; i < TOTAL_LEN; i++) {
-        gpiod_line_set_value(line, frame[i % FRAME_LEN]);
-        delay_ms(1);
-    }
-
+    // Close GPIO
     gpiod_line_release(line);
     gpiod_chip_close(chip);
 

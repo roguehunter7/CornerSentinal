@@ -63,7 +63,7 @@ video_path = "test_images/rightside.mp4"
 cap = cv2.VideoCapture(video_path)
 
 # Constants for speed calculation
-VIDEO_FPS = 30  # Assuming the video is recorded at 30 fps
+VIDEO_FPS = cap.get(cv2.CAP_PROP_FPS)
 FACTOR_KM = 3.6
 LATENCY_FPS = VIDEO_FPS / 2
 

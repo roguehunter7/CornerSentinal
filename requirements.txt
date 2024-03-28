@@ -7,6 +7,4 @@ onnx
 rpi.gpio
 gpiozero
 python-multipart
-supervision
 tk
-numba
