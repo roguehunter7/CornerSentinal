@@ -3,7 +3,7 @@ from collections import defaultdict
 import cv2
 import numpy as np
 from threading import Thread
-from time import time, sleep
+from time import time
 from ultralytics import YOLO
 from send import *
 
@@ -173,7 +173,7 @@ def send_thread_function(client_socket_send, frame_counter):
 receive_thread = Thread(target=receive_thread_function, args=(s_receive,))
 receive_thread.start()
 
-send_thread = Thread(target=send_thread_function, args=(s_send, frame_counter))
+send_thread = Thread(target=send_thread_function, args=(s_send, frame_counter,))
 send_thread.start()
 
 # Wait for the threads to finish (if needed)

@@ -81,7 +81,7 @@ int main() {
 
     // CRC Calculation
     CalculateCRC(result);
-
+    
     // Display the message to be transmitted
     printf("Message to be transmitted: %s\n", result);
 
