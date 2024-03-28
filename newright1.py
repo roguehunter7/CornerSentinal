@@ -218,9 +218,8 @@ def process_video():
     running = False
 
 # Start the threads
-receive_thread = threading.Thread(target=receive_binary_code)
-
-send_thread = threading.Thread(target=send_binary_code)
+receive_thread = threading.Thread(target=receive_binary_code,args = (s_receive,))
+send_thread = threading.Thread(target=send_binary_code, args=(s_send,))
 video_thread = threading.Thread(target=process_video)
 
 receive_thread.start()
