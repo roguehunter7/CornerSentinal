@@ -79,16 +79,6 @@ def display_warning_message(frame, binary_code):
 track_history = defaultdict(list)
 stationary_timers = defaultdict(float)
 
-# Counter to keep track of frames
-frame_counter = 0
-
-# Placeholder for the previous frame and points for optical flow
-prev_frame = None
-prev_pts = None
-
-# Placeholder for the previous binary code
-prev_binary_code = None
-
 # Queue for sending binary codes
 send_queue = queue.Queue()
 
@@ -146,7 +136,14 @@ def receive_binary_code():
 # Function to process video frames
 def process_video():
     global running
-
+    # Placeholder for the previous frame and points for optical flow
+    prev_frame = None
+    prev_pts = None
+    # Placeholder for the previous binary code
+    prev_binary_code = None   
+    # Counter to keep track of frames
+    frame_counter = 0
+    
     while cap.isOpened() and running:
         success, frame = cap.read()
 
@@ -229,7 +226,7 @@ def process_video():
 # Start the threads
 send_thread = threading.Thread(target=send_binary_code)
 receive_thread = threading.Thread(target=receive_binary_code)
-video_thread = threading.Thread(target=process_video)
+video_thread = threading.Thread(target=process_video, args= frame_counter,)
 
 send_thread.start()
 receive_thread.start()
