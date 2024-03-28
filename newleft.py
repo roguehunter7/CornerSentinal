@@ -178,9 +178,6 @@ while cap.isOpened():
     cv2.imshow("Frame", annotated_frame)   
     if cv2.waitKey(1) & 0xFF == ord("q"):
         break
-    else:
-        break
-
 
 # Close Connections
 s_client_receive.close()
