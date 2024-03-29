@@ -23,7 +23,9 @@ def int2bin(integer, n):
 
 def main():
     chip = gpiod.Chip("/dev/gpiochip4")
-    line = chip.get_line(4)  # Example pin number, change as needed
+    lines = chip.get_lines([4])  # Example pin number, change as needed
+
+    line = lines[0]
 
     line.request(consumer="example-gpiod", type=gpiod.LINE_REQ_DIR_OUT)
 
