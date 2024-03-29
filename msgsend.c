@@ -4,41 +4,22 @@
 #include <sys/time.h>
 #include <gpiod.h>
 
-char result[3000] = {'1', '0', '1', '0', '1', '0', '1', '0', '1', '0', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1'};
-int counter = 20;
-
-void chartobin(char c) {
-    int i;
-    for (i = 7; i >= 0; i--) {
-        result[counter] = (c & (1 << i)) ? '1' : '0';
-        counter++;
-    }
-}
-
-void int2bin(unsigned integer, int n) {
-    for (int i = 0; i < n; i++) {
-        result[counter] = (integer & (int)1 << (n - i - 1)) ? '1' : '0';
-        counter++;
-    }
-}
+char result[16]; // Preamble (5 bits) + Message (8 bits) + CRC (3 bits)
+int counter = 0;
 
 int pos = 0;
 
-// CRC calculation function
+// CRC calculation function (assuming 3-bit CRC)
 void calculateCRC(char *data, int length, char *crc) {
-    int polynom[9] = {1, 0, 0, 1, 0, 1, 1, 1, 1};
-    int k = length + 18; // Length of the data frame (data + sync sequence + length)
-    int p = 9;           // Length of the CRC polynomial
+    int polynom[4] = {1, 0, 1, 1}; // 3-bit CRC polynomial
+    int k = length; // Length of the data frame (data)
+    int p = 4;      // Length of the CRC polynomial
     int n = k + p - 1;   // Total length including padding for division
     int frame[n];        // Buffer frame with perfect size for CRC
 
     // Convert data frame to integer array
     for (int i = 0; i < k; i++) {
-        if (i < 18) {
-            frame[i] = result[i] - '0';
-        } else {
-            frame[i] = data[i - 18] - '0';
-        }
+        frame[i] = data[i] - '0';
     }
     for (int i = k; i < n; i++) {
         frame[i] = 0;
@@ -91,38 +72,34 @@ int main() {
         return 1;
     }
 
-    // Read message
-    char msg[3000];
-    int len, k, length;
-    printf("\n Enter the Message: ");
-    scanf("%[^\n]", msg);
-    len = strlen(msg);
+    // Read 8-bit binary message
+    char msg[9];
+    printf("\nEnter the 8-bit Binary Message: ");
+    scanf("%8s", msg);
 
-    // Add frame header (sync sequence and length)
-    strcpy(result + counter, "1010101111111111");
-    counter += 16;
-    int2bin(len * 8, 16);
+    // Add preamble (5 bits)
+    strcpy(result, "10101");
+    counter += 5;
 
-    printf("Frame Header (Synchro and Textlength) = %s\n", result);
+    // Add message data (8 bits)
+    strcat(result, msg);
+    counter += 8;
 
-    // Add message data
-    for (k = 0; k < len; k++) {
-        chartobin(msg[k]);
-    }
-
-    // Calculate and add CRC
-    char crc[9];
-    calculateCRC(result + 20, counter - 20, crc);
+    // Calculate and add CRC (3 bits)
+    char crc[4]; // 3 bits CRC
+    calculateCRC(result + 5, 8, crc);
     strcat(result, crc);
-    length = strlen(result);
+    counter += 3;
 
     gettimeofday(&tval_before, NULL);
+
+    int length = strlen(result);
 
     while (pos != length) {
         gettimeofday(&tval_after, NULL);
         timersub(&tval_after, &tval_before, &tval_result);
         double time_elapsed = (double)tval_result.tv_sec + ((double)tval_result.tv_usec / 1000000.0f);
-        while (time_elapsed < 0.002) {
+        while (time_elapsed < 0.001) {
             gettimeofday(&tval_after, NULL);
             timersub(&tval_after, &tval_before, &tval_result);
             time_elapsed = (double)tval_result.tv_sec + ((double)tval_result.tv_usec / 1000000.0f);
