@@ -4,6 +4,9 @@
 #include <string.h>
 #include <gpiod.h>
 
+#define preambleSize 20
+#define crcSize 8
+
 char result[3000] = {'1', '0', '1', '0', '1', '0', '1', '0', '1', '0', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1'};
 int counter = 20;
 
@@ -23,42 +26,56 @@ void int2bin(unsigned integer, int n) {
     }
 }
 
-// Calculate CRC for the given data frame
-void calculateCRC(char *dataFrame, int dataLength) {
-    int polynom[9] = {1, 0, 0, 1, 0, 1, 1, 1, 1};
-    int p = 9;
-    int n = dataLength + p - 1;
-    int frame[n];
-
-    // Convert data frame to integer array
-    for (int i = 0; i < n; i++) {
-        if (i < dataLength) {
-            frame[i] = dataFrame[i] - '0';
-        } else {
-            frame[i] = 0;
-        }
-    }
-
-    // Perform CRC calculation
-    int i = 0;
-    while (i < dataLength) {
-        for (int j = 0; j < p; j++) {
-            if (frame[i + j] == polynom[j]) {
-                frame[i + j] = 0;
-            } else {
-                frame[i + j] = 1;
+void CalculateCRC(char dataFrame[], int startpoint)
+{	
+    int polynom[9]={1,0,0,1,0,1,1,1,1};
+	int k=startpoint-preambleSize; 	
+	int p=9; // lenght of polynom 
+    int n=k+p-1;
+    int frame[n]; //n=k+p-1 buffer frame with perfect size for CRC
+    
+    //convert char array to int array
+    for(int i=0;i<n;i++){
+		if(i<k){
+			frame[i]=dataFrame[i]-'0'; //converts an char number to corresponding int number
+		}
+		else{
+			frame[i]=0;
+		}	
+	}
+    
+    //make the division
+    int i=0;
+	while (  i <  k  ){											
+		for( int j=0 ; j < p ; j++){
+            if( frame[i+j] == polynom[j] )	{
+                frame[i+j]=0;
             }
+            else{
+                frame[i+j]=1;
+            }			
+		}
+		while( i< n && frame[i] != 1)
+			i++; 
+	}
+    
+    //CRC
+    for(int j=k; j-k<p-1;j++)
+    {
+        //erst am Ende des Frames die CRC Sequenz deswegen j=k
+        if (frame[j]==1)
+        {
+            result[j]='1';
+            }
+        else{
+            result[j]='0';
         }
-        while (i < n && frame[i] != 1) {
-            i++;
-        }
+        
     }
 
-    // Append CRC bits to the data frame
-    for (int j = dataLength; j - dataLength < p - 1; j++) {
-        dataFrame[j] = frame[j];
-    }
 }
+
+int pos = 0;
 
 int main() {
     struct timeval tval_before, tval_after, tval_result;
@@ -88,33 +105,24 @@ int main() {
         return 0;
     }
     gpiod_line_set_value(line, 0);
-    printf("\nEnter the Message: ");
+    printf("\n Enter the Message: ");
     scanf("%[^\n]", msg);
     len = strlen(msg);
-
-    // Synchronization sequence
-    strcpy(result, "1010101111111111");
-    counter = 16;
-
-    // Message data length
     int2bin(len * 8, 16);
+    printf("Frame Header (Synchro and Textlength = %s\n", result);
 
-    // Message data
     for (k = 0; k < len; k++) {
         chartobin(msg[k]);
     }
 
-    // Calculate CRC for the message data and append to the message
-    calculateCRC(result + 32, len * 8); // Start from position after header and data length
+    length = strlen(result);
 
-    // Print the complete frame with CRC included
-    printf("Frame with CRC: %s\n", result);
+    CalculateCRC(result,length);
 
     length = strlen(result);
     gettimeofday(&tval_before, NULL);
 
-    // Transmit the message with CRC
-    for (int pos = 0; pos < length; pos++) {
+    while (pos != length) {
         gettimeofday(&tval_after, NULL);
         timersub(&tval_after, &tval_before, &tval_result);
         double time_elapsed = (double)tval_result.tv_sec + ((double)tval_result.tv_usec / 1000000.0f);
@@ -129,8 +137,10 @@ int main() {
 
         if (result[pos] == '1') {
             gpiod_line_set_value(line, 1);
+            pos++;
         } else if (result[pos] == '0') {
             gpiod_line_set_value(line, 0);
+            pos++;
         }
     }
 
