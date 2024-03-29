@@ -45,7 +45,7 @@ int main() {
     }
 
     // Configure the GPIO line as output
-    int ret = gpiod_line_request_output(line, "led", GPIOD_LINE_ACTIVE_STATE_HIGH);
+    int ret = gpiod_line_request_output(line, "led", GPIOD_LINE_ACTIVE_STATE_LOW);
     if (ret < 0) {
         perror("Failed to request GPIO line");
         gpiod_line_release(line);
