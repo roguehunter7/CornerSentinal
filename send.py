@@ -51,7 +51,8 @@ def main():
         elif result[pos] == '0':
             lines.set_value(0)
             pos += 1
-
+    
+    lines.set_value(0)
     lines.release()
     chip.close()
 
