@@ -5,7 +5,6 @@
 #include <gpiod.h>
 
 #define preambleSize 20
-#define crcSize 8
 
 char result[3000] = {'1', '0', '1', '0', '1', '0', '1', '0', '1', '0', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1'};
 int counter = 20;
