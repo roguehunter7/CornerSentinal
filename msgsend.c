@@ -34,14 +34,23 @@ int main() {
     struct gpiod_chip *chip = gpiod_chip_open_by_name("gpiochip4");
     if (!chip) {
         perror("Failed to open GPIO chip");
-        return 1;
+        return 0;
     }
 
     struct gpiod_line *line = gpiod_chip_get_line(chip, 4);
     if (!line) {
         perror("Failed to get GPIO line");
         gpiod_chip_close(chip);
-        return 1;
+        return 0;
+    }
+
+    // Configure the GPIO line as output
+    int ret = gpiod_line_request_output(line, "led", GPIOD_LINE_ACTIVE_STATE_LOW);
+    if (ret < 0) {
+        perror("Failed to request GPIO line");
+        gpiod_line_release(line);
+        gpiod_chip_close(chip);
+        return 0;
     }
 
     printf("\n Enter the Message: ");
