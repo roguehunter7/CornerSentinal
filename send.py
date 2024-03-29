@@ -23,11 +23,10 @@ def int2bin(integer, n):
 
 def main():
     chip = gpiod.Chip("/dev/gpiochip4")
-    lines = chip.get_lines([4])  # Example pin number, change as needed
+    line = gpiod.find_line("PA4")
+    lines = chip.get_lines([line.offset()]) # Example pin number, change as needed
 
-    line = lines[0]
-
-    line.request(consumer="example-gpiod", type=gpiod.LINE_REQ_DIR_OUT)
+    lines.request(consumer="example-gpiod", type=gpiod.LINE_REQ_DIR_OUT, default_vals=[0])
 
     msg = input("\nEnter the Message: ")
 
@@ -47,10 +46,10 @@ def main():
             pass
 
         if result[pos] == '1':
-            line.set_value(1)
+            lines.set_value(1)
             pos += 1
         elif result[pos] == '0':
-            line.set_value(0)
+            lines.set_value(0)
             pos += 1
 
     line.release()
