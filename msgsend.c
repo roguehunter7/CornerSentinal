@@ -79,10 +79,6 @@ int main() {
         chartobin(msg[k]);
     }
 
-    printf("\n Enter the Message: ");
-    scanf("%[^\n]", msg);
-    len = strlen(msg);
-
     // Add preamble
     strcat(result, "1010101111111111");
     counter += 16;
