@@ -22,7 +22,7 @@ def int2bin(integer, n):
     return binary
 
 def main():
-    chip = gpiod.Chip("gpiochip4")
+    chip = gpiod.Chip("pinctrl-rp1")
     line = chip.get_line(4)  # Example pin number, change as needed
 
     line.request(consumer="example-gpiod", type=gpiod.LINE_REQ_DIR_OUT)
