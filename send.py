@@ -23,6 +23,7 @@ def int2bin(integer, n):
     return binary
 
 def main():
+    global pos
     chip = gpiod.Chip("/dev/gpiochip4")
     lines = chip.get_line(4) # Example pin number, change as needed
     lines.request(consumer="example-gpiod", type=gpiod.LINE_REQ_DIR_OUT, default_vals=[0])
@@ -51,7 +52,7 @@ def main():
             lines.set_value(0)
             pos += 1
 
-    line.release()
+    lines.release()
     chip.close()
 
 if __name__ == "__main__":
