@@ -47,9 +47,9 @@ ISR(TIMER1_COMPA_vect)
   int sensorValue = analogRead(A0);
   float voltage = sensorValue * (5.0 / 1023.0);
 
-  //Serial.println(voltage);
+  Serial.println(voltage);
 
-  if (voltage>=1) 
+  if (voltage>=) 
   {
     data="1";
     //Serial.println("1");

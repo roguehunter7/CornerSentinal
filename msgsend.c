@@ -52,7 +52,7 @@ int main() {
         gpiod_chip_close(chip);
         return 0;
     }
-
+    gpiod_line_set_value(line, 0);
     printf("\n Enter the Message: ");
     scanf("%[^\n]", msg);
     len = strlen(msg);
@@ -89,6 +89,7 @@ int main() {
     }
 
     // Clean up
+    gpiod_line_set_value(line, 0);
     gpiod_line_release(line);
     gpiod_chip_close(chip);
 
