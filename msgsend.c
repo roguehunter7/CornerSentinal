@@ -117,7 +117,7 @@ int main() {
     length = strlen(result);
 
     CalculateCRC(result,length);
-
+    printf("Frame Header (Synchro and Textlength and CRC = %s\n", result);
     length = strlen(result);
     gettimeofday(&tval_before, NULL);
 
