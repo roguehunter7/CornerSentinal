@@ -1,14 +1,10 @@
 #include <stdio.h>
-#include <stdlib.h>
+#include <malloc.h>
 #include <sys/time.h>
 #include <string.h>
 #include <gpiod.h>
 
-#define GPIO_CHIP_NAME "gpiochip4"  // Change this if your GPIO chip name is different
-#define GPIO_PIN_NUMBER 4           // Change this to your desired GPIO pin number
-#define BUFFER_SIZE 3000
-
-char result[BUFFER_SIZE] = {'1', '0', '1', '0', '1', '0', '1', '0', '1', '0', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1'};
+char result[3000] = {'1', '0', '1', '0', '1', '0', '1', '0', '1', '0', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1'};
 int counter = 20;
 
 void chartobin(char c) {
@@ -31,41 +27,37 @@ int pos = 0;
 
 int main() {
     struct timeval tval_before, tval_after, tval_result;
+    char msg[3000];
+    int len, k, length;
 
-    // Open GPIO chip
-    struct gpiod_chip *chip = gpiod_chip_open(GPIO_CHIP_NAME);
+    // Initialize libgpiod
+    struct gpiod_chip *chip = gpiod_chip_open_by_name("gpiochip4");
     if (!chip) {
-        perror("Error opening GPIO chip");
+        perror("Failed to open GPIO chip");
         return 1;
     }
 
-    // Get GPIO line
-    struct gpiod_line *line = gpiod_chip_get_line(chip, GPIO_PIN_NUMBER);
+    struct gpiod_line *line = gpiod_chip_get_line(chip, 4);
     if (!line) {
-        perror("Error getting GPIO line");
+        perror("Failed to get GPIO line");
         gpiod_chip_close(chip);
         return 1;
     }
 
-    // Request output direction for GPIO pin
-    if (gpiod_line_request_output(line, "output", 0) < 0) {
-        perror("Error setting GPIO pin as output");
+    // Configure the GPIO line as output
+    int ret = gpiod_line_request_output(line, "led", GPIOD_LINE_ACTIVE_STATE_HIGH);
+    if (ret < 0) {
+        perror("Failed to request GPIO line");
         gpiod_line_release(line);
         gpiod_chip_close(chip);
         return 1;
     }
 
-    // Read message
-    char msg[BUFFER_SIZE];
-    int len, k, length;
-
-    printf("\nEnter the Message: ");
+    printf("\n Enter the Message: ");
     scanf("%[^\n]", msg);
-
     len = strlen(msg);
-
-    int2bin(len * 8, 16); // Multiply by 8 because one byte is 8 bits
-    printf("Frame Header (Synchro and Textlength): %s\n", result);
+    int2bin(len * 8, 16);
+    printf("Frame Header (Synchro and Textlength = %s\n", result);
 
     for (k = 0; k < len; k++) {
         chartobin(msg[k]);
@@ -73,6 +65,7 @@ int main() {
 
     length = strlen(result);
     gettimeofday(&tval_before, NULL);
+
     while (pos != length) {
         gettimeofday(&tval_after, NULL);
         timersub(&tval_after, &tval_before, &tval_result);
@@ -83,6 +76,7 @@ int main() {
             timersub(&tval_after, &tval_before, &tval_result);
             time_elapsed = (double)tval_result.tv_sec + ((double)tval_result.tv_usec / 1000000.0f);
         }
+
         gettimeofday(&tval_before, NULL);
 
         if (result[pos] == '1') {
@@ -94,7 +88,7 @@ int main() {
         }
     }
 
-    // Release resources
+    // Clean up
     gpiod_line_release(line);
     gpiod_chip_close(chip);
 
