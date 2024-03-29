@@ -122,7 +122,7 @@ int main() {
         gettimeofday(&tval_after, NULL);
         timersub(&tval_after, &tval_before, &tval_result);
         double time_elapsed = (double)tval_result.tv_sec + ((double)tval_result.tv_usec / 1000000.0f);
-        while (time_elapsed < 0.001) {
+        while (time_elapsed < 0.002) {
             gettimeofday(&tval_after, NULL);
             timersub(&tval_after, &tval_before, &tval_result);
             time_elapsed = (double)tval_result.tv_sec + ((double)tval_result.tv_usec / 1000000.0f);
