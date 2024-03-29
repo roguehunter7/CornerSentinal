@@ -23,19 +23,16 @@ void int2bin(unsigned integer, int n) {
     }
 }
 
-int pos = 0;
-
 // Calculate CRC for the given data frame
-void calculateCRC(char *dataFrame) {
+void calculateCRC(char *dataFrame, int dataLength) {
     int polynom[9] = {1, 0, 0, 1, 0, 1, 1, 1, 1};
-    int k = strlen(dataFrame);
     int p = 9;
-    int n = k + p - 1;
+    int n = dataLength + p - 1;
     int frame[n];
 
     // Convert data frame to integer array
     for (int i = 0; i < n; i++) {
-        if (i < k) {
+        if (i < dataLength) {
             frame[i] = dataFrame[i] - '0';
         } else {
             frame[i] = 0;
@@ -44,7 +41,7 @@ void calculateCRC(char *dataFrame) {
 
     // Perform CRC calculation
     int i = 0;
-    while (i < k) {
+    while (i < dataLength) {
         for (int j = 0; j < p; j++) {
             if (frame[i + j] == polynom[j]) {
                 frame[i + j] = 0;
@@ -58,7 +55,7 @@ void calculateCRC(char *dataFrame) {
     }
 
     // Append CRC bits to the data frame
-    for (int j = k; j - k < p - 1; j++) {
+    for (int j = dataLength; j - dataLength < p - 1; j++) {
         dataFrame[j] = frame[j];
     }
 }
@@ -95,24 +92,29 @@ int main() {
     scanf("%[^\n]", msg);
     len = strlen(msg);
 
-    // Convert message length to binary and append to result
-    int2bin(len * 8, 16);
-    printf("Frame Header (Synchro and Textlength): %s\n", result);
+    // Synchronization sequence
+    strcpy(result, "1010101111111111");
+    counter = 16;
 
-    // Append message bits to result
+    // Message data length
+    int2bin(len * 8, 16);
+
+    // Message data
     for (k = 0; k < len; k++) {
         chartobin(msg[k]);
     }
 
-    // Calculate CRC and append to the message
-    calculateCRC(result + 20); // Start from position after header
+    // Calculate CRC for the message data and append to the message
+    calculateCRC(result + 32, len * 8); // Start from position after header and data length
+
+    // Print the complete frame with CRC included
     printf("Frame with CRC: %s\n", result);
 
     length = strlen(result);
     gettimeofday(&tval_before, NULL);
 
     // Transmit the message with CRC
-    while (pos != length) {
+    for (int pos = 0; pos < length; pos++) {
         gettimeofday(&tval_after, NULL);
         timersub(&tval_after, &tval_before, &tval_result);
         double time_elapsed = (double)tval_result.tv_sec + ((double)tval_result.tv_usec / 1000000.0f);
@@ -127,10 +129,8 @@ int main() {
 
         if (result[pos] == '1') {
             gpiod_line_set_value(line, 1);
-            pos++;
         } else if (result[pos] == '0') {
             gpiod_line_set_value(line, 0);
-            pos++;
         }
     }
 
