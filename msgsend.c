@@ -47,13 +47,13 @@ int main() {
     int len, k, length, data_len;
 
      // Initialize libgpiod
-    struct gpiod_chip *chip = gpiod_chip_open_by_name("gpiochip0");
+    struct gpiod_chip *chip = gpiod_chip_open_by_name("gpiochip4");
     if (!chip) {
         perror("Failed to open GPIO chip");
         return 1;
     }
 
-    struct gpiod_line *line = gpiod_chip_get_line(chip, 0);
+    struct gpiod_line *line = gpiod_chip_get_line(chip, 4);
     if (!line) {
         perror("Failed to get GPIO line");
         gpiod_chip_close(chip);
