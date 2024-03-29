@@ -15,6 +15,7 @@ def chartobin(c):
     return binary
 
 def int2bin(integer, n):
+    global counter
     binary = []
     for i in range(n):
         binary.append('1' if (integer & (1 << (n - i - 1))) else '0')
