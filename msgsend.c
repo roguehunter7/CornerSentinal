@@ -39,7 +39,8 @@ int main() {
     scanf("%[^\n]", msg);
 
     length = strlen(msg);
-
+    printf("Frame Header (message) = %s\n", msg);
+    
     for(int i = 0; i < length; i++) {
         result[21+i] = msg[i];
     }
