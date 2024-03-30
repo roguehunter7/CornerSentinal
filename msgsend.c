@@ -19,6 +19,52 @@ void custom_delay(double milliseconds) {
     }
 }
 
+void CalculateCRC(char dataFrame[], int startpoint)
+{	
+    int polynom[4]={1,0,1,1};
+	int k=8; 	
+	int p=4; // lenght of polynom 
+    int frame[13]; //n=k+p-1 buffer frame with perfect size for CRC
+    
+    //convert char array to int array
+    for(int i=0;i<11;i++){
+		if(i<k){
+			frame[i]=dataFrame[i]-'0'; //converts an char number to corresponding int number
+		}
+		else{
+			frame[i]=0;
+		}	
+	}
+    
+    //make the division
+    int i=0;
+	while (  i <  k  ){											
+		for( int j=0 ; j < p ; j++){
+            if( frame[i+j] == polynom[j] )	{
+                frame[i+j]=0;
+            }
+            else{
+                frame[i+j]=1;
+            }			
+		}
+		while( i< 11 && frame[i] != 1)
+			i++; 
+	}
+    
+    //CRC
+    for(int j=k; j-k<p-1;j++)
+    {
+        if (frame[j]==1)
+        {
+            result[j]='1';
+            }
+        else{
+            result[j]='0';
+        }
+        
+    }
+}
+
 int main() {
     struct timeval tval_before, tval_after, tval_result;
     // GPIO Initialization
@@ -56,8 +102,9 @@ int main() {
     strncat(result, msg, length);
 
     printf("Frame Header (Synchro and Text) = %s\n", result);
-
+    CalculateCRC(result,5)
     length = strlen(result);
+    printf("Frame Header (Synchro and Text and CRC ) = %s\n", result);
     gettimeofday(&tval_before, NULL);
     while(pos != length) {
         gettimeofday(&tval_after, NULL);
