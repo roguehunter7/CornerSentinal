@@ -57,7 +57,7 @@ void CalculateCRC(char dataFrame[])
     for(i=0,j=k;i<p-1;i++,j++){
         crc[i]=frame[j];
     }
-    for(i=12;j=0;i<p-1;i++,j++){
+    for(i=12,j=0;i<p-1;i++,j++){
         result[i]=crc[j];
     }
     
