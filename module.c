@@ -53,19 +53,16 @@ void transmit_message(const char *msg) {
     chip = gpiod_chip_open("/dev/gpiochip4");
     if (!chip) {
         perror("Open chip failed\n");
-        return 0;
     }
     line = gpiod_chip_get_line(chip, 4);
     if (!line) {
         perror("Get line failed\n");
         gpiod_chip_close(chip);
-        return 0;
     }
     int ret = gpiod_line_request_output(line, "example", 0);
     if (ret < 0) {
         perror("Request line as output failed\n");
         gpiod_chip_close(chip);
-        return 0;
     }
 
     int len, length;
