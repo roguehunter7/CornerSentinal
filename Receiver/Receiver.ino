@@ -49,7 +49,7 @@ ISR(TIMER1_COMPA_vect)
 
   //Serial.println(voltage);
 
-  if (voltage>=1) 
+  if (voltage>=0.5) 
   {
     data="1";
     //Serial.println("1");
@@ -118,11 +118,11 @@ void receiveData(String bit)
 
   if (dataBits.length()==16)
   {
-    //Serial.println("data Bits: "+dataBits);
-    char char_array[17];  // Prepare the character array (the buffer)
+    Serial.println("data Bits: "+dataBits);
+    char char_array[16];  // Prepare the character array (the buffer)
     dataBits.toCharArray(char_array, 17);
     decimalValue= strtol(char_array, NULL, 2);//function for converting string into long data type integer
-    //Serial.println(decimalValue);
+    Serial.println(decimalValue);
 
   }
 

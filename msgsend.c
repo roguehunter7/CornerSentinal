@@ -69,7 +69,7 @@ int main()
     {
         chartobin(msg[k]);            
     }
-
+    printf ("Frame Header (Synchro and Textlength and Text) = %s\n", result);
     length = strlen(result);
     gettimeofday(&tval_before, NULL);
     while(pos != length)
