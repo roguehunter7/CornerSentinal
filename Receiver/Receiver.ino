@@ -16,7 +16,7 @@ void setup() {
   TCCR1B = 0;// same for TCCR1B
   TCNT1  = 0;//initialize counter value to 0;
   // set timer count for 1khz increments
-  OCR1A = 4003;// = (16*10^6) / (1000*8) - 1        OCR1A = 2001 for 1kHz;
+  OCR1A = 2001;// = (16*10^6) / (1000*8) - 1        OCR1A = 2001 for 1kHz;
   // turn on CTC mode
   TCCR1B |= (1 << WGM12);
   // Set CS11 bit for 8 prescaler
@@ -108,7 +108,7 @@ void lookForSynchro(String bit)
 
 void receiveData(String bit)
 {
-  Serial.println(dataBits);
+  // Serial.println(dataBits);
   if (dataBits.length()==8)
   {
     Serial.println("data Bits: "+dataBits);
