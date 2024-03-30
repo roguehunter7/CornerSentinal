@@ -39,6 +39,7 @@ void CalculateCRC(char dataFrame[])
     
     //make the division
     int i=0;
+    int j=0;
 	while (  i <  k  ){											
 		for( int j=0 ; j < p ; j++){
             if( frame[i+j] == polynom[j] )	{
