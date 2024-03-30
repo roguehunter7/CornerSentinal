@@ -70,7 +70,7 @@ int main() {
 
     // Read message
     char msg[3000];
-    int len, k, length;
+    int len, length;
     gpiod_line_set_value(line, 0);
 
     // Append preamble
@@ -157,8 +157,8 @@ int main() {
 	}		
  	printf("\n");
 
-    length = strlen(frame_copy);
-    strncat(result, frame_copy, length);
+    length = strlen(frame);
+    strncat(result, frame, length);
 
     printf("Frame Header (Synchro and Text and CRC ) = %s\n", result);
     length = strlen(result);
