@@ -4,6 +4,10 @@
 #include <string.h>
 #include <gpiod.h>
 
+#define preambleSize 5
+#define crcSize 3
+#define frameSize 8
+
 char result[3000] = {0};
 int counter = 20;
 int pos = 0;
@@ -19,15 +23,15 @@ void custom_delay(double milliseconds) {
     }
 }
 
-void CalculateCRC(char dataFrame[], int startpoint)
+void CalculateCRC(char dataFrame[])
 {	
     int polynom[4]={1,0,1,1};
-	int k=8; 	
+	int k=preambleSize-crcSize; 	
 	int p=4; // lenght of polynom 
-    int frame[13]; //n=k+p-1 buffer frame with perfect size for CRC
+    int frame[preambleSize+frameSize]; //n=k+p-1 buffer frame with perfect size for CRC
     
     //convert char array to int array
-    for(int i=0;i<11;i++){
+    for(int i=0;i<preambleSize+frameSize;i++){
 		if(i<k){
 			frame[i]=dataFrame[i]-'0'; //converts an char number to corresponding int number
 		}
@@ -35,6 +39,7 @@ void CalculateCRC(char dataFrame[], int startpoint)
 			frame[i]=0;
 		}	
 	}
+    
     //make the division
     int i=0;
 	while (  i <  k  ){											
@@ -46,13 +51,14 @@ void CalculateCRC(char dataFrame[], int startpoint)
                 frame[i+j]=1;
             }			
 		}
-		while( i< 11 && frame[i] != 1)
+		while( i< preambleSize+frameSize && frame[i] != 1)
 			i++; 
 	}
     
     //CRC
     for(int j=k; j-k<p-1;j++)
     {
+        //erst am Ende des Frames die CRC Sequenz deswegen j=k
         if (frame[j]==1)
         {
             result[j]='1';
@@ -101,9 +107,9 @@ int main() {
     strncat(result, msg, length);
 
     printf("Frame Header (Synchro and Text) = %s\n", result);
-    CalculateCRC(result,5);
-    length = strlen(result);
+    CalculateCRC(result);
     printf("Frame Header (Synchro and Text and CRC ) = %s\n", result);
+    length = strlen(result);
     gettimeofday(&tval_before, NULL);
     while(pos != length) {
         gettimeofday(&tval_after, NULL);
