@@ -45,7 +45,7 @@ void division(int frame_copy[],int poly[],int n,int k,int p)
      
 }
 
-int main() {
+void transmit_message(const char *msg) {
     struct timeval tval_before, tval_after, tval_result;
     // GPIO Initialization
     struct gpiod_chip *chip;
@@ -75,10 +75,6 @@ int main() {
 
     // Append preamble
     strcpy(result, "10101");
-
-    // Append user's input
-    printf("\n Enter the Message: ");
-    scanf("%[^\n]", msg);
     
 
     int poly[4]={1,0,1,1}; 	
@@ -109,37 +105,11 @@ int main() {
 	
 	
 	}
-	
-	printf("Frame without CRC: ");
-	for(int i=0;i<n;i++){
-	
-			printf("%d",frame_copy[i]);
-	
-	}	
- 	printf("\n");
-	
-	
-	printf("Polynomial : ");
-	for(int i=0;i<p;i++){
-	
-			printf("%d",poly[i]);
-	
-	}	
-	
- 	printf("\n");
+
 	int i,j;
- 	//Division
+ 	
+    //Division
     division(frame_copy,poly,n,k,p);
-    //CRC
-    int crc[15];
-    for(i=0,j=k;i<p-1;i++,j++){
-        crc[i]=frame_copy[j];
-    }
-    printf("\n CRC bits: ");
-    for(i=0;i<p-1;i++){
-        printf("%d",crc[i]);
-    }
-    printf("\n");
         
 	for(int i=0;i<n;i++){
 	
@@ -148,14 +118,6 @@ int main() {
 		}
 		
 	}
-       
-    printf("\n Final bits: \n");			
-	for(int i=0;i<n;i++){
-	
-		printf("%d",frame_copy[i]);
-	
-	}		
- 	printf("\n");
 
     char frame_str[n + 1]; // +1 for null terminator
     for (int i = 0; i < n; i++) {
@@ -166,8 +128,6 @@ int main() {
     // Now you can use frame_str with string functions
     length = strlen(frame_str);
     strncat(result, frame_str, length);
-
-    printf("Frame Header (Synchro and Text and CRC ) = %s\n", result);
     length = strlen(result);
     gettimeofday(&tval_before, NULL);
     while(pos != length) {
@@ -194,5 +154,8 @@ int main() {
     gpiod_line_set_value(line, 0);
     gpiod_line_release(line);
     gpiod_chip_close(chip);
-    return 0;
+}
+
+int main(){
+        return 0;
 }

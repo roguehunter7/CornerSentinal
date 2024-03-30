@@ -4,6 +4,7 @@ String sequence = "00000";
 String dataBits = "";
 boolean synchro_Done = false;
 boolean receiveData_Done = false;
+boolean crc_check_value=false;
 
 void setup() {
   //Timer Interrupt settings:
@@ -54,9 +55,8 @@ ISR(TIMER1_COMPA_vect) {
     case 1: //receive Data
       receiveData_Done = false;
       receiveData(data);
-      if (receiveData_Done == true) {
-        Serial.println(dataBits);
-        dataBits = "";
+      if (receiveData_Done == true) 
+      {
         state = 0; // Reset state to look for next synchronization sequence
       }
       break;
@@ -80,7 +80,81 @@ void lookForSynchro(String bit) {
 
 void receiveData(String bit) {
   dataBits.concat(bit);
-  if (dataBits.length() == 8) {
-    receiveData_Done = true;
+  if (dataBits.length() == 11) 
+  { 
+    if (crc_check_value==false) //do the CRC check
+    {
+      checkCRC(dataBits);  
+    }
+
+    if (crc_check_value==true) //only show message when not corrupted
+    {
+      char datamessage[9];
+      for(int i=0;i<8;i++){
+        datamessage[i]=dataBits[i];
+      }
+      Serial.println(datamessage);
+      dataBits = "";
+      receiveData_Done=true; 
+      crc_check_value=false;
+    }
   }
+}
+
+void checkCRC(String dataFrame)
+{
+  int polynom[4]={1,0,1,1};
+  int k=dataFrame.length();  
+  int p=4; //int p=strlen(polynom); // lenght of polynom (normaly fix, but it is better to use a variable if I want to change the polynom later
+  int n=k+p-1; //add some zeros to the end of the data for the polynom division
+  int frame[n]; //buffer frame with perfect size for CRC 
+    
+  //convert char array to int array
+  for(int i=0;i<n;i++){
+    if(i<k){
+      frame[i]=dataFrame[i]-'0'; //converts an char number to corresponding int number
+    }
+    else{
+      frame[i]=0;
+    } 
+  }
+   
+  //make the division
+  int i=0;
+  while (  i <  k  ){                     
+    for( int j=0 ; j < p ; j++){
+            if( frame[i+j] == polynom[j] )  {
+                frame[i+j]=0;
+            }
+            else{
+                frame[i+j]=1;
+            }     
+    }
+    while( i< n && frame[i] != 1)
+      i++; 
+  }
+  bool CRC_Done_false=false;  
+  for(int j=k; j-k<p-1;j++)
+  {
+    if (frame[j]==1){
+      CRC_Done_false=true;
+    }     
+  }  
+
+  if(CRC_Done_false==false)
+  {
+    Serial.println("Message has no errors!");
+    Serial.println();
+    Serial.print("Message: ");
+    crc_check_value=true;  
+  }
+
+  if(CRC_Done_false==true)
+  {
+    Serial.println("Message had an error and was dropped!");
+    crc_check_value=false;  
+    dataBits="";
+    receiveData_Done=true;
+  }
+   
 }
