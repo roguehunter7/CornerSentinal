@@ -8,14 +8,6 @@ char result[3000] = {'1','0','1','0','1','0','1','0','1','0','1','1','1','1','1'
 int counter = 20;
 int pos = 0;
 
-void chartobin(char c)
-{
-    int i;
-    for(i = 7; i >= 0; i--) {
-        result[counter] = (c & (1 << i)) ? '1' : '0';  
-        counter++;
-    }
-}
 
 void int2bin(unsigned integer, int n)
 {  
@@ -60,16 +52,12 @@ int main()
     printf("\n Enter the Message: ");
     scanf("%[^'\n']", msg);
 
-    len = strlen(msg);
-
-    int2bin(len * 8, 16); // Multiply by 8 because one byte is 8 bits
-    printf ("Frame Header (Synchro and Textlength) = %s\n", result);
-
-    for(k = 0; k < len; k++)
-    {
-        chartobin(msg[k]);            
-    }
-    printf ("Frame Header (Synchro and Textlength and Text) = %s\n", result);
+    for(int i = 0; i<8 ; i++){
+        
+        result[counter+1+i] == msg[i];
+    
+    }    
+    printf ("Frame Header (Synchro and Text) = %s\n", result);
     length = strlen(result);
     gettimeofday(&tval_before, NULL);
     while(pos != length)

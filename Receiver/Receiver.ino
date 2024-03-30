@@ -71,14 +71,14 @@ ISR(TIMER1_COMPA_vect)
       synchro_Done=false;
       lookForSynchro(data);
 
-      if (synchro_Done== true)
+      if (synchro_Done == true)
       {
         state=1;
       }
       break;
     case 1:
       //receive Data
-      receiveData_Done =false;
+      receiveData_Done = false;
       receiveData(data);
 
       if (receiveData_Done==true)
@@ -116,109 +116,17 @@ void receiveData(String bit)
 {
   dataBits.concat(bit);
 
-  if (dataBits.length()==16)
+  if (dataBits.length()==8)
   {
     Serial.println("data Bits: "+dataBits);
-    char char_array[16];  // Prepare the character array (the buffer)
-    dataBits.toCharArray(char_array, 17);
+    char char_array[8];  // Prepare the character array (the buffer)
+    dataBits.toCharArray(char_array, 9);
     decimalValue= strtol(char_array, NULL, 2);//function for converting string into long data type integer
     Serial.println(decimalValue);
-
   }
 
-  if(dataBits.length()==decimalValue+16+8) //Stop dynamically at the end of the message; +16 because 2 bytes frame for data message length; +8 for last byte CRC
-  {
-
-    if (crc_check_value==false) //do the CRC check
-    {
-      checkCRC(dataBits);  
-    }
-
-    if (crc_check_value==true) //only show message when not corrupted
-    {
-      //Converting the Bits to Text here
-      String output = "";
-      for(int i = 2; i < (dataBits.length()/8)-1; i++) //first 2 bytes are for the data length and have no msg data; -1 because last Byte is for CRC and has no message data
-      {
-          String pl = "";
-          for(int l = i*8; l < 8*(i+1); l++){ 
-              pl += dataBits[l];
-          }    
-          
-          int n = 0;
-          for(int j = 0; j < 8; j++)
-          {
-              int x = (int)(pl[j])-(int)'0';
-              for(int k = 0; k < 7-j; k++)  x *= 2;
-              n += x;
-          }
-          output += (char)n;
-      }
-      Serial.println(output);
-    
-      dataBits="";
-      receiveData_Done=true; 
-      crc_check_value=false;
-    }
-    
-  }
+  dataBits="";
+  receiveData_Done=true; 
+  
 }
-void checkCRC(String dataFrame)
-{
-  int polynom[9]={1,0,0,1,0,1,1,1,1};
-  dataFrame="10101010101111111111"+dataFrame;
-  int k=dataFrame.length();  
-  int p=9; //int p=strlen(polynom); // lenght of polynom (normaly fix, but it is better to use a variable if I want to change the polynom later
-  int n=k+p-1; //add some zeros to the end of the data for the polynom division
-  int frame[n]; //buffer frame with perfect size for CRC 
-    
-  //convert char array to int array
-  for(int i=0;i<n;i++){
-    if(i<k){
-      frame[i]=dataFrame[i]-'0'; //converts an char number to corresponding int number
-    }
-    else{
-      frame[i]=0;
-    } 
-  }
-   
-  //make the division
-  int i=0;
-  while (  i <  k  ){                     
-    for( int j=0 ; j < p ; j++){
-            if( frame[i+j] == polynom[j] )  {
-                frame[i+j]=0;
-            }
-            else{
-                frame[i+j]=1;
-            }     
-    }
-    while( i< n && frame[i] != 1)
-      i++; 
-  }
-  bool CRC_Done_false=false;  
-  for(int j=k; j-k<p-1;j++)
-  {
-    //erst am Ende des Frames die CRC Sequenz deswegen j=k
-    if (frame[j]==1){
-      CRC_Done_false=true;
-    }     
-  }  
 
-  if(CRC_Done_false==false)
-  {
-    Serial.println("Message has no errors!");
-    Serial.println();
-    Serial.print("Message: ");
-    crc_check_value=true;  
-  }
-
-  if(CRC_Done_false==true)
-  {
-    Serial.println("Message had an error and was dropped!");
-    crc_check_value=false;  
-    dataBits="";
-    receiveData_Done=true;
-  }
-   
-}
