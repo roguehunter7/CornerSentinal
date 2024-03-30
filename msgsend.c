@@ -102,7 +102,7 @@ int main() {
     strncat(result, msg, length);
 
     printf("Frame Header (Synchro and Text) = %s\n", result);
-    CalculateCRC(result,5)
+    CalculateCRC(result,5);
     length = strlen(result);
     printf("Frame Header (Synchro and Text and CRC ) = %s\n", result);
     gettimeofday(&tval_before, NULL);
