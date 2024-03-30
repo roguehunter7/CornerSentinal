@@ -13,11 +13,11 @@ void division(int frame_copy[],int poly[],int n,int k,int p)
 			
 				if( frame_copy[i+j] == poly[j] )	
         			{
-                    				frame_copy[i+j]=0;
+                    		frame_copy[i+j]=0;
 				}
         			else
 		 		{
-                    				frame_copy[i+j]=1;
+                    		frame_copy[i+j]=1;
 				}			
 		}
 		

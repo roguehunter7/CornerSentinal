@@ -20,47 +20,29 @@ void custom_delay(double milliseconds) {
     }
 }
 
-void CalculateCRC(char dataFrame[])
-{	
-    int polynom[4]={1,0,1,1};
-	int k=8; 	
-	int p=4; // lenght of polynom 
-    int frame[11]; //n=k+p-1 buffer frame with perfect size for CRC
-    
-    //convert char array to int array
-    for(int i=0;i<11;i++){
-		if(i<k){
-			frame[i]=dataFrame[i]-'0'; //converts an char number to corresponding int number
+void division(int frame_copy[],int poly[],int n,int k,int p)
+{
+	int i=0;
+	while (  i <  k  )			
+	{											
+		for( int j=0 ; j < p ; j++)							
+		{
+			
+				if( frame_copy[i+j] == poly[j] )	
+        			{
+                    		frame_copy[i+j]=0;
+				}
+        			else
+		 		{
+                    		frame_copy[i+j]=1;
+				}			
 		}
-		else{
-			frame[i]=0;
-		}	
-	}
-    
-    //make the division
-    int i=0;
-    int j=0;
-	while (  i <  k  ){											
-		for( int j=0 ; j < p ; j++){
-            if( frame[i+j] == polynom[j] )	{
-                frame[i+j]=0;
-            }
-            else{
-                frame[i+j]=1;
-            }			
-		}
-		while( i < 11 && frame[i] != 1)
+		
+		while( i< n && frame_copy[i] != 1)
 			i++; 
+	
 	}
-    int crc[3];
-    //CRC
-    for(i=0,j=k;i<p-1;i++,j++){
-        crc[i]=frame[j];
-    }
-    for(i=12,j=0;i<p-1;i++,j++){
-        result[i]=crc[j];
-    }
-    
+     
 }
 
 int main() {
@@ -90,16 +72,94 @@ int main() {
     char msg[3000];
     int len, k, length;
     gpiod_line_set_value(line, 0);
-    printf("\n Enter the Message: ");
-    scanf("%[^\n]", msg);
+
     // Append preamble
     strcpy(result, "10101");
 
     // Append user's input
+    printf("\n Enter the Message: ");
+    scanf("%[^\n]", msg);
+    
 
-    length = strlen(msg);
-    strncat(result, msg, length);
-    CalculateCRC(msg);
+    int poly[4]={1,0,1,1}; 	
+	
+	// lenght of string data		
+	int k = strlen(msg);
+	// lenght of polynomail
+	int p = 4;
+	// the end frame must have an appended bit less than the polynomail
+	int n=k+p-1;
+	
+	// creating a frame to send data
+	int frame[n];
+	// creating a copy of frame
+	// as it will get modified during calculation
+	int frame_copy[n];
+
+	// creating int array from message also appending data
+	for(int i=0;i<n;i++){
+	
+		if(i<k){
+		
+			frame_copy[i]=frame[i]=msg[i]-'0';
+		}
+		else{
+			frame_copy[i]=frame[i]=0;
+		}
+	
+	
+	}
+	
+	printf("Frame without CRC: ");
+	for(int i=0;i<n;i++){
+	
+			printf("%d",frame_copy[i]);
+	
+	}	
+ 	printf("\n");
+	
+	
+	printf("Polynomial : ");
+	for(int i=0;i<p;i++){
+	
+			printf("%d",poly[i]);
+	
+	}	
+	
+ 	printf("\n");
+	int i,j;
+ 	//Division
+    division(frame_copy,poly,n,k,p);
+    //CRC
+    int crc[15];
+    for(i=0,j=k;i<p-1;i++,j++){
+        crc[i]=frame_copy[j];
+    }
+    printf("\n CRC bits: ");
+    for(i=0;i<p-1;i++){
+        printf("%d",crc[i]);
+    }
+    printf("\n");
+        
+	for(int i=0;i<n;i++){
+	
+		if(i<k){
+			frame_copy[i]=frame[i]=msg[i]-'0';
+		}
+		
+	}
+       
+    printf("\n Final bits: \n");			
+	for(int i=0;i<n;i++){
+	
+		printf("%d",frame_copy[i]);
+	
+	}		
+ 	printf("\n");
+
+    length = strlen(frame_copy);
+    strncat(result, frame_copy, length);
+
     printf("Frame Header (Synchro and Text and CRC ) = %s\n", result);
     length = strlen(result);
     gettimeofday(&tval_before, NULL);
