@@ -35,7 +35,7 @@ void CalculateCRC(char dataFrame[], int startpoint)
 			frame[i]=0;
 		}	
 	}
-    
+    printf(frame);
     //make the division
     int i=0;
 	while (  i <  k  ){											
