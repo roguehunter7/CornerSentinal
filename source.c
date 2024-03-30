@@ -95,30 +95,27 @@ int main(){
  	printf("\n");
 	int i,j;
  	//Division
-     	division(frame_copy,poly,n,k,p);
-    	//CRC
-    	int crc[15];
-    	for(i=0,j=k;i<p-1;i++,j++)
-    	{
-        	crc[i]=frame_copy[j];
-    	}
-    	printf("\n CRC bits: ");
-    	for(i=0;i<p-1;i++)
-    	{
-        	printf("%d",crc[i]);
-    	}
-        printf("\n");
+    division(frame_copy,poly,n,k,p);
+    //CRC
+    int crc[15];
+    for(i=0,j=k;i<p-1;i++,j++){
+        crc[i]=frame_copy[j];
+    }
+    printf("\n CRC bits: ");
+    for(i=0;i<p-1;i++){
+        printf("%d",crc[i]);
+    }
+    printf("\n");
         
 	for(int i=0;i<n;i++){
 	
 		if(i<k){
-		
 			frame_copy[i]=frame[i]=datas[i]-'0';
 		}
 		
 	}
        
-        printf("\n Final bits: \n");			
+    printf("\n Final bits: \n");			
 	for(int i=0;i<n;i++){
 	
 		printf("%d",frame_copy[i]);

@@ -28,7 +28,7 @@ void CalculateCRC(char dataFrame[])
     int frame[11]; //n=k+p-1 buffer frame with perfect size for CRC
     
     //convert char array to int array
-    for(int i=0;i<8;i++){
+    for(int i=0;i<11;i++){
 		if(i<k){
 			frame[i]=dataFrame[i]-'0'; //converts an char number to corresponding int number
 		}
@@ -48,7 +48,7 @@ void CalculateCRC(char dataFrame[])
                 frame[i+j]=1;
             }			
 		}
-		while( i < 8 && frame[i] != 1)
+		while( i < 11 && frame[i] != 1)
 			i++; 
 	}
     
