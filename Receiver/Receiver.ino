@@ -114,19 +114,17 @@ void lookForSynchro(String bit)
 
 void receiveData(String bit)
 {
-  dataBits.concat(bit);
-
+  Serial.println(dataBits);
   if (dataBits.length()==8)
   {
     Serial.println("data Bits: "+dataBits);
     char char_array[8];  // Prepare the character array (the buffer)
     dataBits.toCharArray(char_array, 9);
+    Serial.println(char_array);
     decimalValue= strtol(char_array, NULL, 2);//function for converting string into long data type integer
     Serial.println(decimalValue);
+    dataBits="";
+    receiveData_Done=true; 
   }
-
-  dataBits="";
-  receiveData_Done=true; 
-  
 }
 
