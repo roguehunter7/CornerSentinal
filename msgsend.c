@@ -157,8 +157,16 @@ int main() {
 	}		
  	printf("\n");
 
-    length = strlen(frame);
-    strncat(result, frame, length);
+    char frame_str[n + 1]; // +1 for null terminator
+    for (int i = 0; i < n; i++) {
+        frame_str[i] = frame_copy[i] + '0'; // Convert integer to character
+    }
+    frame_str[n] = '\0'; // Null terminate the string
+
+    // Now you can use frame_str with string functions
+    length = strlen(frame_str);
+    
+    strncat(result, frame_str, length);
 
     printf("Frame Header (Synchro and Text and CRC ) = %s\n", result);
     length = strlen(result);
