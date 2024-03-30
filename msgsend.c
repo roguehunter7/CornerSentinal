@@ -8,26 +8,6 @@ char result[3000] = {0};
 int counter = 20;
 int pos = 0;
 
-char *manchester_encode(const char *input, int *encoded_len) {
-    int len = strlen(input);
-    char *encoded = malloc((len * 2 + 1) * sizeof(char));
-    int encoded_pos = 0;
-
-    for (int i = 0; i < len; i++) {
-        if (input[i] == '0') {
-            encoded[encoded_pos++] = '0';
-            encoded[encoded_pos++] = '1';
-        } else if (input[i] == '1') {
-            encoded[encoded_pos++] = '1';
-            encoded[encoded_pos++] = '0';
-        }
-    }
-
-    encoded[encoded_pos] = '\0';
-    *encoded_len = encoded_pos;
-    return encoded;
-}
-
 int main() {
     struct timeval tval_before, tval_after, tval_result;
     // GPIO Initialization
@@ -57,22 +37,22 @@ int main() {
     gpiod_line_set_value(line, 0);
     printf("\n Enter the Message: ");
     scanf("%[^\n]", msg);
-
-    // Append preamble and Manchester encode
+    // Append preamble
     strcpy(result, "10101010101111111111");
-    char *encoded_msg = manchester_encode(msg, &len);
-    strncat(result, encoded_msg, len);
-    free(encoded_msg);
+
+    // Append user's input
+    length = strlen(msg);
+    strncat(result, msg, length);
 
     printf("Frame Header (Synchro and Text) = %s\n", result);
-    length = strlen(result);
 
+    length = strlen(result);
     gettimeofday(&tval_before, NULL);
-    while (pos != length) {
+    while(pos != length) {
         gettimeofday(&tval_after, NULL);
         timersub(&tval_after, &tval_before, &tval_result);
         double time_elapsed = (double)tval_result.tv_sec + ((double)tval_result.tv_usec / 1000000.0f);
-        while (time_elapsed < 0.002) {
+        while(time_elapsed < 0.002) {
             gettimeofday(&tval_after, NULL);
             timersub(&tval_after, &tval_before, &tval_result);
             time_elapsed = (double)tval_result.tv_sec + ((double)tval_result.tv_usec / 1000000.0f);
@@ -81,7 +61,7 @@ int main() {
         if (result[pos] == '1') {
             gpiod_line_set_value(line, 1);
             pos++;
-        } else if (result[pos] == '0') {
+        } else if(result[pos] == '0') {
             gpiod_line_set_value(line, 0);
             pos++;
         }
