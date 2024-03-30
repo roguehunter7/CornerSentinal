@@ -4,7 +4,7 @@
 #include <string.h>
 #include <gpiod.h>
 
-char result[3000] = {'1', '0', '1', '0', '1', '0', '1', '0', '1', '0', '1', '1', '1', '1', '1', '1', '1', '1', '1', '1'};
+char result[3000] = {0};
 int counter = 20;
 int pos = 0;
 
@@ -37,14 +37,13 @@ int main() {
     gpiod_line_set_value(line, 0);
     printf("\n Enter the Message: ");
     scanf("%[^\n]", msg);
+    // Append preamble
+    strcpy(result, "10101010101111111111");
 
+    // Append user's input
     length = strlen(msg);
-    printf("Frame Header (message) = %s\n", msg);
-    
-    for(int i = 0; i < length; i++) {
-        result[21+i] = msg[i];
-    }
-    result[21+length] = '\0'; // Add null terminator
+    strncat(result, msg, length);
+
     printf("Frame Header (Synchro and Text) = %s\n", result);
 
     length = strlen(result);
