@@ -38,7 +38,7 @@ int main() {
     printf("\n Enter the Message: ");
     scanf("%[^\n]", msg);
     // Append preamble
-    strcpy(result, "10101010101111111111");
+    strcpy(result, "10101");
 
     // Append user's input
     length = strlen(msg);

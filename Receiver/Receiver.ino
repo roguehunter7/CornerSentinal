@@ -8,7 +8,6 @@ boolean receiveData_Done =false;
 void setup() {
   //Timer Interrupt settings:
   // TIMER SETUP- the timer interrupt allows preceise timed measurements of the reed switch
-  //for mor info about configuration of arduino timers see https://nerd-corner.com/arduino-timer-interrupts-how-to-program-arduino-registers/
   cli();//stop interrupts
 
   //set timer1 interrupt at 1kHz ; 
@@ -44,7 +43,7 @@ ISR(TIMER1_COMPA_vect)
   int sensorValue = analogRead(A0);
   float voltage = sensorValue * (5.0 / 1023.0);
 
-  //Serial.println(voltage);
+  // Serial.println(voltage);
 
   if (voltage>=0.5) 
   {
@@ -94,10 +93,9 @@ void loop() {
 
 void lookForSynchro(String bit)
 {
-  String preambel="1010101111111111";
+  String preambel="10101";
   sequence.concat(bit);
-  sequence.remove(0,1);
-  //Serial.println("Sequence: "+sequence);
+  Serial.println("Sequence: "+sequence);
   if (sequence==preambel)
   {
     Serial.println("Synchro done");
@@ -114,7 +112,6 @@ void receiveData(String bit)
     Serial.println("data Bits: "+dataBits);
     char char_array[8];  // Prepare the character array (the buffer)
     dataBits.toCharArray(char_array, 9);
-    Serial.println(char_array);
     dataBits="";
     receiveData_Done=true; 
   }
