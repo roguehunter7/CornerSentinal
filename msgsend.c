@@ -8,6 +8,17 @@ char result[3000] = {0};
 int counter = 20;
 int pos = 0;
 
+void custom_delay(double milliseconds) {
+    struct timeval tval_before, tval_after, tval_result;
+    gettimeofday(&tval_before, NULL);
+    double time_elapsed = 0;
+    while (time_elapsed < milliseconds / 1000.0) {
+        gettimeofday(&tval_after, NULL);
+        timersub(&tval_after, &tval_before, &tval_result);
+        time_elapsed = (double)tval_result.tv_sec + ((double)tval_result.tv_usec / 1000000.0);
+    }
+}
+
 int main() {
     struct timeval tval_before, tval_after, tval_result;
     // GPIO Initialization
@@ -68,6 +79,7 @@ int main() {
     }
 
     // Cleanup
+    custom_delay(1);
     gpiod_line_set_value(line, 0);
     gpiod_line_release(line);
     gpiod_chip_close(chip);
