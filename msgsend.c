@@ -37,12 +37,13 @@ int main() {
     gpiod_line_set_value(line, 0);
     printf("\n Enter the Message: ");
     scanf("%[^\n]", msg);
+
     length = strlen(msg);
-    int copy_len = (length > 8) ? 8 : length;
-    for(int i = 0; i < copy_len; i++) {
+
+    for(int i = 0; i < length; i++) {
         result[21+i] = msg[i];
     }
-    result[21+copy_len] = '\0'; // Add null terminator
+    result[21+length] = '\0'; // Add null terminator
     printf("Frame Header (Synchro and Text) = %s\n", result);
 
     length = strlen(result);
