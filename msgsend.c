@@ -55,6 +55,7 @@ int main()
     // Read message
     char msg[3000];
     int len, k, length;
+    gpiod_line_set_value(line, 0);
 
     printf("\n Enter the Message: ");
     scanf("%[^'\n']", msg);
@@ -97,6 +98,7 @@ int main()
     }
 
     // Cleanup
+    gpiod_line_set_value(line, 0);
     gpiod_line_release(line);
     gpiod_chip_close(chip);
 
