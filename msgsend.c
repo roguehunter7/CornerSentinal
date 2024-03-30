@@ -99,8 +99,8 @@ int main() {
     strcpy(result, "10101");
 
     // Append user's input
-    length = strlen(msg);
     CalculateCRC(msg);
+    length = strlen(msg);
     strncat(result, msg, length);
     printf("Frame Header (Synchro and Text and CRC ) = %s\n", result);
     length = strlen(result);
