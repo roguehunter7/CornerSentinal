@@ -1,121 +1,102 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <malloc.h>
 #include <sys/time.h>
+#include <string.h>
 #include <gpiod.h>
 
-char result[16]; // Preamble (5 bits) + Message (8 bits) + CRC (3 bits)
-int counter = 0;
-
+char result[3000] = {'1','0','1','0','1','0','1','0','1','0','1','1','1','1','1','1','1','1','1','1'};
+int counter = 20;
 int pos = 0;
 
-// CRC calculation function (assuming 3-bit CRC)
-void calculateCRC(char *data, int length, char *crc) {
-    int polynom[4] = {1, 0, 1, 1}; // 3-bit CRC polynomial
-    int k = length; // Length of the data frame (data)
-    int p = 4;      // Length of the CRC polynomial
-    int n = k + p - 1;   // Total length including padding for division
-    int frame[n];        // Buffer frame with perfect size for CRC
-
-    // Convert data frame to integer array
-    for (int i = 0; i < k; i++) {
-        frame[i] = data[i] - '0';
+void chartobin(char c)
+{
+    int i;
+    for(i = 7; i >= 0; i--) {
+        result[counter] = (c & (1 << i)) ? '1' : '0';  
+        counter++;
     }
-    for (int i = k; i < n; i++) {
-        frame[i] = 0;
-    }
-
-    // Perform polynomial division
-    int i = 0;
-    while (i < k) {
-        for (int j = 0; j < p; j++) {
-            if (frame[i + j] == polynom[j]) {
-                frame[i + j] = 0;
-            } else {
-                frame[i + j] = 1;
-            }
-        }
-        while (i < n && frame[i] != 1)
-            i++;
-    }
-
-    // Copy CRC to the output array
-    for (int j = k; j - k < p - 1; j++) {
-        crc[j - k] = frame[j] + '0';
-    }
-    crc[p - 1] = '\0';
 }
 
-int main() {
+void int2bin(unsigned integer, int n)
+{  
+    for (int i = 0; i < n; i++)   
+    {
+        result[counter] = (integer & (int)1 << (n - i - 1)) ? '1' : '0';
+        result[36] = '\0';
+        counter++;
+    }
+}
+
+int main()
+{
     struct timeval tval_before, tval_after, tval_result;
 
-    // Open GPIO chip
+    // GPIO Initialization
     struct gpiod_chip *chip;
+    struct gpiod_line *line;
     chip = gpiod_chip_open("/dev/gpiochip4");
     if (!chip) {
-        perror("Error opening GPIO chip");
+        perror("Open chip failed\n");
         return 1;
     }
-
-    // Request and configure GPIO line
-    struct gpiod_line *line;
-    line = gpiod_chip_get_line(chip, 4); // Assuming GPIO line 0
+    line = gpiod_chip_get_line(chip, 4);
     if (!line) {
-        perror("Error getting GPIO line");
+        perror("Get line failed\n");
+        gpiod_chip_close(chip);
+        return 1;
+    }
+    int ret = gpiod_line_request_output(line, "example", 0);
+    if (ret < 0) {
+        perror("Request line as output failed\n");
         gpiod_chip_close(chip);
         return 1;
     }
 
-    if (gpiod_line_request_output(line, "gpio-program", 0) < 0) {
-        perror("Error requesting GPIO output");
-        gpiod_chip_close(chip);
-        return 1;
+    // Read message
+    char msg[3000];
+    int len, k, length;
+
+    printf("\n Enter the Message: ");
+    scanf("%[^'\n']", msg);
+
+    len = strlen(msg);
+
+    int2bin(len * 8, 16); // Multiply by 8 because one byte is 8 bits
+    printf ("Frame Header (Synchro and Textlength) = %s\n", result);
+
+    for(k = 0; k < len; k++)
+    {
+        chartobin(msg[k]);            
     }
 
-    // Read 8-bit binary message
-    char msg[9];
-    printf("\nEnter the 8-bit Binary Message: ");
-    scanf("%8s", msg);
-
-    // Add preamble (5 bits)
-    strcpy(result, "10101");
-    counter += 5;
-
-    // Add message data (8 bits)
-    strcat(result, msg);
-    counter += 8;
-
-    // Calculate and add CRC (3 bits)
-    char crc[4]; // 3 bits CRC
-    calculateCRC(result + 5, 8, crc);
-    strcat(result, crc);
-    counter += 3;
-
+    length = strlen(result);
     gettimeofday(&tval_before, NULL);
-
-    int length = strlen(result);
-
-    while (pos != length) {
+    while(pos != length)
+    {
         gettimeofday(&tval_after, NULL);
         timersub(&tval_after, &tval_before, &tval_result);
         double time_elapsed = (double)tval_result.tv_sec + ((double)tval_result.tv_usec / 1000000.0f);
-        while (time_elapsed < 0.001) {
+
+        while(time_elapsed < 0.001)
+        {
             gettimeofday(&tval_after, NULL);
             timersub(&tval_after, &tval_before, &tval_result);
             time_elapsed = (double)tval_result.tv_sec + ((double)tval_result.tv_usec / 1000000.0f);
         }
         gettimeofday(&tval_before, NULL);
-        if (result[pos] == '1') {
+
+        if (result[pos] == '1')
+        {
             gpiod_line_set_value(line, 1);
             pos++;
-        } else if (result[pos] == '0') {
+        }
+        else if(result[pos] == '0') {
             gpiod_line_set_value(line, 0);
             pos++;
         }
     }
 
-    // Release GPIO line and chip
-    gpiod_line_set_value(line, 0);
+    // Cleanup
     gpiod_line_release(line);
     gpiod_chip_close(chip);
 
