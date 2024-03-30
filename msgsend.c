@@ -51,19 +51,15 @@ void CalculateCRC(char dataFrame[])
 		while( i < 11 && frame[i] != 1)
 			i++; 
 	}
-    
+    int crc[3];
     //CRC
-    for(int j=k; j-k<p-1;j++)
-    {
-        if (frame[j]==1)
-        {
-            result[j]='1';
-            }
-        else{
-            result[j]='0';
-        }
-        
+    for(i=0,j=k;i<p-1;i++,j++){
+        crc[i]=frame[j];
     }
+    for(i=12;j=0;i<p-1;i++,j++){
+        result[i]=crc[j];
+    }
+    
 }
 
 int main() {
@@ -99,9 +95,10 @@ int main() {
     strcpy(result, "10101");
 
     // Append user's input
-    CalculateCRC(msg);
+
     length = strlen(msg);
     strncat(result, msg, length);
+    CalculateCRC(msg);
     printf("Frame Header (Synchro and Text and CRC ) = %s\n", result);
     length = strlen(result);
     gettimeofday(&tval_before, NULL);
