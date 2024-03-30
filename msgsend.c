@@ -52,9 +52,9 @@ int main()
     printf("\n Enter the Message: ");
     scanf("%[^'\n']", msg);
 
-    for(int i = 0; i<8 ; i++){
+    for(int i = 0 ; i<8 ; i++){
         
-        result[counter+1+i] == msg[i];
+        result[21+i] == msg[i];
     
     }    
     printf ("Frame Header (Synchro and Text) = %s\n", result);
