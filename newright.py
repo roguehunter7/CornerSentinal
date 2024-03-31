@@ -99,22 +99,18 @@ prev_binary_code = None
 recv_binary_code = None
 prev_track_id = None
 
-# Create a queue for receiving data from the client socket
-recv_queue = Queue()
-
 # Function to handle receiving data from the client socket
-def receive_data_from_client(s_client_receive, recv_queue):
+def receive_data_from_client(s_client_receive):
     while True:
         try:
             recv_binary_code = s_client_receive.recv(1024).decode()
-            if recv_binary_code:
-                recv_queue.put(recv_binary_code)
+            transmit_message(recv_binary_code)
         except KeyboardInterrupt:
             print("Keyboard interrupt detected.")
             break
 
 # Create and start a thread for receiving data
-receive_thread = threading.Thread(target=receive_data_from_client, args=(s_receive, recv_queue))
+receive_thread = threading.Thread(target=receive_data_from_client, args=(s_receive,))
 receive_thread.daemon = True  # Set as a daemon thread so it terminates when the main program exits
 receive_thread.start()
 
@@ -178,11 +174,6 @@ while cap.isOpened():
                                     cv2.line(annotated_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
                             prev_frame = roi
                             prev_pts = np.array([[(int(w / 2), int(h / 2))]], dtype=np.float32)
-
-            # Transmit received binary codes from the queue
-            while not recv_queue.empty():
-                recv_binary_code = recv_queue.get()
-                transmit_message(recv_binary_code)
 
     # Increment frame counter
     frame_counter += 1
