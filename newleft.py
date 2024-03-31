@@ -62,7 +62,7 @@ def calculate_speed(distances, factor_km, latency_fps):
 
 # Function to generate 9-bit binary code based on conditions
 def generate_binary_code(class_id, speed, is_stationary, is_wrong_side):
-    binary_code = np.array(['0'] * 8, dtype=object)
+    binary_code = ['0'] * 8
 
     # Stationary bit
     binary_code[0] = '1' if is_stationary else '0'
