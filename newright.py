@@ -118,7 +118,7 @@ receive_thread.daemon = True  # Set as a daemon thread so it terminates when the
 receive_thread.start()
 
 while cap.isOpened():
-    ret, frame = cap.grab()
+    ret = cap.grab()
     if ret:
         success, frame = cap.retrieve()
 
