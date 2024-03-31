@@ -36,6 +36,7 @@ ISR(TIMER1_COMPA_vect) {
   String data = "0";
   int sensorValue = analogRead(A0);
   float voltage = sensorValue * (5.0 / 1023.0);
+  // Serial.println(voltage);
   if (voltage >= 0.5) {
     data = "1";
   } else {
@@ -94,6 +95,7 @@ void receiveData(String bit) {
         datamessage[i]=dataBits[i];
       }
       Serial.println(datamessage);
+      decodeBinaryCode(datamessage);
       dataBits = "";
       receiveData_Done=true; 
       crc_check_value=false;
@@ -157,4 +159,44 @@ void checkCRC(String dataFrame)
     receiveData_Done=true;
   }
    
+}
+void decodeBinaryCode(String binary_code) {
+  bool is_stationary = binary_code[0] == '1';
+  String vehicle_type;
+  String speed_range;
+  bool is_wrong_side = binary_code[5] == '1';
+
+  String vehicle_id = binary_code.substring(2, 5);
+  if (vehicle_id == "100") {
+    vehicle_type = "Ambulance";
+  } else if (vehicle_id == "010") {
+    vehicle_type = "Car or Van or Taxi/Auto";
+  } else if (vehicle_id == "011") {
+    vehicle_type = "Bus or Truck";
+  } else if (vehicle_id == "001") {
+    vehicle_type = "Motorcycle";
+  } else {
+    vehicle_type = "Unknown";
+  }
+
+  String speed_id = binary_code.substring(6, 8);
+  if (speed_id == "11") {
+    speed_range = "Overspeed Vehicle";
+  } else if (speed_id == "10") {
+    speed_range = "40-60";
+  } else if (speed_id == "01") {
+    speed_range = "1.5-40";
+  } else {
+    speed_range = "Unknown";
+  }
+
+  Serial.print("Vehicle: ");
+  Serial.println(vehicle_type);
+  Serial.print("Stationary: ");
+  Serial.println(is_stationary ? "Yes" : "No");
+  Serial.print("Wrong side: ");
+  Serial.println(is_wrong_side ? "Yes" : "No");
+  Serial.print("Speed range: ");
+  Serial.println(speed_range);
+  Serial.println();
 }
