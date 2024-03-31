@@ -49,11 +49,10 @@ def calculate_speed(distances, factor_km, latency_fps):
 
 # Function to generate 9-bit binary code based on conditions
 def generate_binary_code(class_id, speed, is_stationary, is_wrong_side):
-    binary_code = ['0'] * 9
-    binary_code[0] = '1'  # start bit
+    binary_code = ['0'] * 8
 
     # Stationary bit
-    binary_code[1] = '1' if is_stationary else '0'
+    binary_code[0] = '1' if is_stationary else '0'
 
     if class_id == 0:  # Ambulance
         binary_code[2:5] = '100'
@@ -104,7 +103,7 @@ def receive_data_from_client(s_client_receive):
         try:
             recv_binary_code = s_client_receive.recv(1024).decode()
             if recv_binary_code:
-                transmit_binary_data(recv_binary_code)
+                transmit_message(recv_binary_code)
         except KeyboardInterrupt:
             print("Keyboard interrupt detected.")
             break
