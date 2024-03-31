@@ -165,10 +165,11 @@ while cap.isOpened():
                        
                         binary_code = generate_binary_code(class_id[i], speed, is_stationary, is_wrong_side)
 
-                        if track_ids[i] != prev_track_id:
+                        if track_ids[i] != prev_track_id or binary_code != prev_binary_code:
                             print("binary code to be sent:",binary_code)
                             s_client_send.sendall(binary_code.encode())
                             prev_track_id = track_ids[i]
+                            prev_binary_code = binary_code
                                 
                         display_warning_message(annotated_frame, binary_code)
                         cv2.putText(annotated_frame, f"Speed: {speed:.2f} km/h", (int(x), int(y) - 10),
