@@ -16,10 +16,7 @@ transmit_message = lib.transmit_message
 transmit_message.argtypes = [ctypes.c_char_p]
 transmit_message.restype = None
 
-def transmit_message(message):
-    transmit_message(message.encode('utf-8'))
-
 if __name__ == "__main__":
     # Example usage
     message = input("Enter the message: ")
-    transmit_message(message)
+    transmit_message(message.encode('utf-8'))
