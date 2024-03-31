@@ -1,7 +1,7 @@
 import ctypes
 
 # Load the shared library
-transmitter = ctypes.CDLL('./transmitter.so')
+transmitter = ctypes.CDLL('./module.so')
 
 # Define the function signature
 transmitter.transmit_message.argtypes = [ctypes.c_char_p]
