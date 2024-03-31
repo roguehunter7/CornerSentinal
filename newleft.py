@@ -129,8 +129,8 @@ receive_thread.daemon = True  # Set as a daemon thread so it terminates when the
 receive_thread.start()
 
 while cap.isOpened():
-    success, frame = cap.grab()
-    if success:
+    ret, frame = cap.grab()
+    if ret:
         success, frame = cap.retrieve()
 
         # Check if YOLO inference should be performed on this frame
