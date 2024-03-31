@@ -4,11 +4,6 @@
 #include <string.h>
 #include <gpiod.h>
 
-
-char result[3000] = {0};
-int counter = 20;
-int pos = 0;
-
 void custom_delay(double milliseconds) {
     struct timeval tval_before, tval_after, tval_result;
     gettimeofday(&tval_before, NULL);
@@ -46,6 +41,10 @@ void division(int frame_copy[],int poly[],int n,int k,int p)
 }
 
 void transmit_message(const char *msg) {
+    
+    char result[3000] = {0};
+    int counter = 20;
+    int pos = 0;
     struct timeval tval_before, tval_after, tval_result;
     // GPIO Initialization
     struct gpiod_chip *chip;
