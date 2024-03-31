@@ -12,11 +12,10 @@ division = lib.division
 division.argtypes = [ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int), ctypes.c_int, ctypes.c_int, ctypes.c_int]
 division.restype = None
 
-transmit_message = lib.transmit_message
-transmit_message.argtypes = [ctypes.c_char_p]
-transmit_message.restype = None
+transmit_msg = lib.transmit_message
+transmit_msg.argtypes = [ctypes.c_char_p]
+transmit_msg.restype = None
 
-if __name__ == "__main__":
-    # Example usage
-    message = input("Enter the message: ")
-    transmit_message(message.encode('utf-8'))
+def transmit_message(message):
+    transmit_msg(message.encode('utf-8'))
+    
