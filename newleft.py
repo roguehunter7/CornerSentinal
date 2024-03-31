@@ -106,6 +106,7 @@ prev_pts = None
 # Placeholder for the previous binary code
 prev_binary_code = None
 recv_binary_code = None
+prev_track_id = None
 
 # Function to handle receiving data from the client socket
 def receive_data_from_client(s_client_receive):
@@ -161,16 +162,18 @@ while cap.isOpened():
                             is_wrong_side = False 
                         else: 
                             is_wrong_side = True 
+                       
                         binary_code = generate_binary_code(class_id[i], speed, is_stationary, is_wrong_side)
-                        
+
+                        if track_ids[i] != prev_track_id:
+                            print("binary code to be sent:",binary_code)
+                            s_client_send.sendall(binary_code.encode())
+                            prev_track_id = track_ids[i]
+                                
                         display_warning_message(annotated_frame, binary_code)
                         cv2.putText(annotated_frame, f"Speed: {speed:.2f} km/h", (int(x), int(y) - 10),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
                         roi = frame[int(y):int(y + h), int(x):int(x + w)]
-                        if binary_code != prev_binary_code:
-                                print("binary code to be sent:",binary_code)
-                                s_client_send.sendall(binary_code.encode())
-                                prev_binary_code = binary_code
 
                         if prev_frame is not None and prev_pts is not None:
                             prev_frame_resized = cv2.resize(prev_frame, (roi.shape[1], roi.shape[0]))
