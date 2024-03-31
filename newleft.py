@@ -50,7 +50,8 @@ s_client_receive, _ = s_send.accept()
 print("Receiver socket connected")
 
 # Function to calculate Euclidean distance
-calculate_distance = np.vectorize(lambda p1, p2: np.sqrt((p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2))
+def calculate_distance(p1, p2):
+    return np.sqrt((p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2)
 
 # Function to calculate speed using Euclidean distance
 def calculate_speed(distances, factor_km, latency_fps):
@@ -135,7 +136,7 @@ while cap.isOpened():
 
         # Check if YOLO inference should be performed on this frame
         if frame_counter % 2 == 0:
-            results = model.track(frame, persist=True, tracker='botsort.yaml', imgsz=320, conf=0.25)
+            results = model.track(frame, persist=True, tracker='bytetrack.yaml', imgsz=320, conf=0.25)
             annotated_frame = results[0].plot()
 
             if results[0].boxes.id is not None:
@@ -150,7 +151,7 @@ while cap.isOpened():
                     track.append((float(x + w / 2), float(y + h / 2)))
 
                     if len(track) >= 2 and track[-2][1] < track[-1][1]:
-                        distances = calculate_distance(np.array(track[:-1]), np.array(track[1:]))
+                        distances = [calculate_distance(track[j], track[j + 1]) for j in range(len(track) - 1)]
                         speed = calculate_speed(distances, FACTOR_KM, LATENCY_FPS)
                         is_stationary = speed < 1.0
                         stationary_timers[track_ids[i]] = time.time() if not is_stationary else stationary_timers[
