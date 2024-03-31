@@ -113,7 +113,7 @@ def receive_data_from_client(s_client_receive, recv_queue):
             break
 
 # Create and start a thread for receiving data
-receive_thread = threading.Thread(target=receive_data_from_client, args=(s_client_receive, recv_queue))
+receive_thread = threading.Thread(target=receive_data_from_client, args=(s_receive, recv_queue))
 receive_thread.daemon = True  # Set as a daemon thread so it terminates when the main program exits
 receive_thread.start()
 
@@ -154,7 +154,7 @@ while cap.isOpened():
                         binary_code = generate_binary_code(class_id[i], speed, is_stationary, is_wrong_side)
 
                         if track_ids[i] != prev_track_id or binary_code != prev_binary_code:
-                            s_client_send.sendall(binary_code.encode())
+                            s_send.sendall(binary_code.encode())
                             prev_track_id = track_ids[i]
                             prev_binary_code = binary_code
 
@@ -190,11 +190,9 @@ while cap.isOpened():
         break
 
 # Close Connections
-s_client_receive.close()
-s_client_send.close()
-# Close Sockets
 s_receive.close()
 s_send.close()
+
 # Release resources
 cap.release()
 cv2.destroyAllWindows()
