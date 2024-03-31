@@ -10,7 +10,7 @@ import threading
 from queue import Queue
 
 # Load the YOLOv8 model
-model = YOLO('train3/weights/best.onnx')
+model = YOLO('train3/weights/best.pt')
 
 # Open the video file
 video_path = "test_images/leftside.mp4"
@@ -132,7 +132,7 @@ while cap.isOpened():
 
         # Check if YOLO inference should be performed on this frame
         if frame_counter % 2 == 0:
-            results = model.track(frame, persist=True, tracker='bytetrack.yaml', imgsz=(320,320), conf=0.25, int8=True)
+            results = model.track(frame, persist=True, tracker='bytetrack.yaml', imgsz=320, conf=0.25, int8=True)
             annotated_frame = results[0].plot()
 
             if results[0].boxes.id is not None:
