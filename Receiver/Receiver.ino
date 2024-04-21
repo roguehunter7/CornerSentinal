@@ -6,6 +6,12 @@ boolean synchro_Done = false;
 boolean receiveData_Done = false;
 boolean crc_check_value=false;
 
+// Array to store the last 50 sensor values
+const int BUFFER_SIZE = 50;
+int sensorValues[BUFFER_SIZE];
+int bufferIndex = 0;
+float threshold = 1; // Initial threshold
+
 void setup() {
   //Timer Interrupt settings:
   // TIMER SETUP- the timer interrupt allows precise timed measurements of the reed switch
@@ -36,8 +42,19 @@ ISR(TIMER1_COMPA_vect) {
   String data = "0";
   int sensorValue = analogRead(A0);
   float voltage = sensorValue * (5.0 / 1023.0);
-  //Serial.println(voltage);
-  if (voltage >= 0.5) {
+  Serial.println(voltage);
+  // Store the sensor value in the buffer
+  sensorValues[bufferIndex] = sensorValue;
+  bufferIndex = (bufferIndex + 1) % BUFFER_SIZE;
+
+  // Calculate the average of the last 24 sensor values as the new threshold
+  float sum = 0;
+  for (int i = 0; i < BUFFER_SIZE; i++) {
+    sum += sensorValues[i];
+  }
+  threshold = sum / BUFFER_SIZE * (5.0 / 1023.0);
+  //Serial.print(threshold);
+  if (voltage >= threshold) {
     data = "1";
   } else {
     data = "0";
@@ -165,6 +182,7 @@ void decodeBinaryCode(String binary_code) {
   String vehicle_type;
   String speed_range;
   bool is_wrong_side = binary_code[5] == '1';
+  bool is_accident = binary_code[1] == '1';
 
   String vehicle_id = binary_code.substring(2, 5);
   if (vehicle_id == "100") {
@@ -194,6 +212,8 @@ void decodeBinaryCode(String binary_code) {
   Serial.println(vehicle_type);
   Serial.print("Stationary: ");
   Serial.println(is_stationary ? "Yes" : "No");
+  Serial.print("Accident: ");
+  Serial.println(is_accident ? "Yes" : "No");
   Serial.print("Wrong side: ");
   Serial.println(is_wrong_side ? "Yes" : "No");
   Serial.print("Speed range: ");
