@@ -1,3 +1,8 @@
+#include <LiquidCrystal.h>
+// Setup the LiquidCrystal library with the pin numbers we have
+// physically connected the module to.
+LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
+
 //global variables
 static unsigned int state;
 String sequence = "00000";
@@ -6,10 +11,7 @@ boolean synchro_Done = false;
 boolean receiveData_Done = false;
 boolean crc_check_value=false;
 
-// Array to store the last 50 sensor values
-const int BUFFER_SIZE = 50;
-int sensorValues[BUFFER_SIZE];
-int bufferIndex = 0;
+int sensorValueCount = 0; //Sensor Value Count
 float threshold = 1; // Initial threshold
 
 void setup() {
@@ -36,29 +38,29 @@ void setup() {
   pinMode(A0, INPUT);
   //initial State is looking for Synchronization sequence
   state = 0;
+  //setup lcd
+  lcd.begin(16, 2);
 }
 
 ISR(TIMER1_COMPA_vect) {
   String data = "0";
   int sensorValue = analogRead(A0);
   float voltage = sensorValue * (5.0 / 1023.0);
-  Serial.println(voltage);
+  // Serial.println(voltage);
   // Store the sensor value in the buffer
-  sensorValues[bufferIndex] = sensorValue;
-  bufferIndex = (bufferIndex + 1) % BUFFER_SIZE;
-
-  // Calculate the average of the last 24 sensor values as the new threshold
-  float sum = 0;
-  for (int i = 0; i < BUFFER_SIZE; i++) {
-    sum += sensorValues[i];
+  sensorValueCount++;
+  // Update the threshold after every 1000 readings
+  if (sensorValueCount % 2500 == 0) {
+    threshold = sensorValue * (5.0 / 1023.0);
+    sensorValueCount = 0; //Reset Counter
   }
-  threshold = sum / BUFFER_SIZE * (5.0 / 1023.0);
-  //Serial.print(threshold);
+  Serial.println(threshold);
   if (voltage >= threshold) {
     data = "1";
   } else {
     data = "0";
   }
+  
 
   //This is the "real" loop function
   switch (state) {
@@ -86,11 +88,10 @@ void loop() {
 }
 
 void lookForSynchro(String bit) {
-  String preambel = "10101";
+  String preambel = "1010101010";
   sequence.concat(bit);
   sequence.remove(0, 1);
   if (sequence == preambel) {
-    Serial.println("Synchro done");
     synchro_Done = true;
     sequence = "00000";
   }
@@ -111,7 +112,6 @@ void receiveData(String bit) {
       for(int i=0;i<8;i++){
         datamessage[i]=dataBits[i];
       }
-      Serial.println(datamessage);
       decodeBinaryCode(datamessage);
       dataBits = "";
       receiveData_Done=true; 
@@ -179,27 +179,70 @@ void checkCRC(String dataFrame)
 }
 void decodeBinaryCode(String binary_code) {
   bool is_stationary = binary_code[0] == '1';
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Stationary");
+  lcd.setCursor(0, 1);
+  lcd.print("Vehicle Ahead");
   String vehicle_type;
   String speed_range;
   bool is_wrong_side = binary_code[5] == '1';
-  bool is_accident = binary_code[1] == '1';
+  if (is_stationary == true)
+  {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Stationary");
+  lcd.setCursor(0, 1);
+  lcd.print("Vehicle Ahead");
+  }
 
+  bool is_accident = binary_code[1] == '1';
+  if (is_accident == true)
+  {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Accident/Crash");
+  lcd.setCursor(0, 1);
+  lcd.print("Detected Ahead");
+  }
   String vehicle_id = binary_code.substring(2, 5);
   if (vehicle_id == "100") {
     vehicle_type = "Ambulance";
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Emergency");
+    lcd.setCursor(0, 1);
+    lcd.print("Vehicle");
   } else if (vehicle_id == "010") {
     vehicle_type = "Car or Van or Taxi/Auto";
   } else if (vehicle_id == "011") {
     vehicle_type = "Bus or Truck";
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Bus/Truck");
+    lcd.setCursor(0, 1);
+    lcd.print("Incoming");
   } else if (vehicle_id == "001") {
     vehicle_type = "Motorcycle";
   } else {
     vehicle_type = "Unknown";
   }
-
+  if (is_wrong_side == true)
+  {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Vehicle Coming");
+  lcd.setCursor(0, 1);
+  lcd.print("On Wrong Side");
+  }
   String speed_id = binary_code.substring(6, 8);
   if (speed_id == "11") {
     speed_range = "Overspeed Vehicle";
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Overspeed");
+    lcd.setCursor(0, 1);
+    lcd.print("Vehicle");
   } else if (speed_id == "10") {
     speed_range = "40-60";
   } else if (speed_id == "01") {
@@ -207,7 +250,6 @@ void decodeBinaryCode(String binary_code) {
   } else {
     speed_range = "Unknown";
   }
-
   Serial.print("Vehicle: ");
   Serial.println(vehicle_type);
   Serial.print("Stationary: ");
