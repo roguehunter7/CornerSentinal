@@ -5,15 +5,17 @@ LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
 
 //global variables
 static unsigned int state;
-String sequence = "00000";
+String sequence = "000000";
 String dataBits = "";
 boolean synchro_Done = false;
 boolean receiveData_Done = false;
 boolean crc_check_value=false;
 
-int sensorValueCount = 0; //Sensor Value Count
-float threshold = 1; // Initial threshold
+unsigned long sensorValueSum = 0; // Sum of sensor values in the window
+const int windowSize = 1000; // Window size for dynamic threshold calculation
+int sensorValueCount = 0; // Sensor value count
 
+float threshold = 0.5; // Initial value for Threshold
 void setup() {
   //Timer Interrupt settings:
   // TIMER SETUP- the timer interrupt allows precise timed measurements of the reed switch
@@ -47,20 +49,26 @@ ISR(TIMER1_COMPA_vect) {
   int sensorValue = analogRead(A0);
   float voltage = sensorValue * (5.0 / 1023.0);
   // Serial.println(voltage);
-  // Store the sensor value in the buffer
-  sensorValueCount++;
-  // Update the threshold after every 1000 readings
-  if (sensorValueCount % 1000 == 0) {
-    threshold = sensorValue * (5.0 / 1023.0);
-    sensorValueCount = 0; //Reset Counter
+  // Update the running sum and average
+  if (sensorValueCount < windowSize) {
+    // Fill the initial window
+    sensorValueSum += sensorValue;
+    sensorValueCount++;
+  } else {
+    // Update the threshold with the running average
+    threshold = (sensorValueSum  / windowSize) * (5.0 / 1023.0);
+    sensorValueSum = 0 ;
+    sensorValueCount = 0;
   }
+
   // Serial.println(threshold);
-  if (voltage >= threshold) {
+  
+  if (voltage >= threshold ) {
     data = "1";
   } else {
     data = "0";
   }
-  
+  // Serial.println(data);
 
   //This is the "real" loop function
   switch (state) {
@@ -69,7 +77,7 @@ ISR(TIMER1_COMPA_vect) {
       lookForSynchro(data);
       if (synchro_Done == true) {
         state = 1;
-        sequence = "00000"; // Reset sequence for next synchronization
+        sequence = "000000"; // Reset sequence for next synchronization
       }
       break;
     case 1: //receive Data
@@ -93,14 +101,14 @@ void lookForSynchro(String bit) {
   sequence.remove(0, 1);
   if (sequence == preambel) {
     synchro_Done = true;
-    sequence = "00000";
+    sequence = "000000";
   }
 }
 
 void receiveData(String bit) {
   dataBits.concat(bit);
   if (dataBits.length() == 11) 
-  { 
+  { Serial.println(dataBits);
     if (crc_check_value==false) //do the CRC check
     {
       checkCRC(dataBits);  
