@@ -74,7 +74,7 @@ int main() {
     gpiod_line_set_value(line, 0);
 
     // Append preamble
-    strcpy(result, "10101010");
+    strcpy(result, "101010");
 
     // Append user's input
     printf("\n Enter the Message: ");
