@@ -50,11 +50,11 @@ ISR(TIMER1_COMPA_vect) {
   // Store the sensor value in the buffer
   sensorValueCount++;
   // Update the threshold after every 1000 readings
-  if (sensorValueCount % 2500 == 0) {
+  if (sensorValueCount % 1000 == 0) {
     threshold = sensorValue * (5.0 / 1023.0);
     sensorValueCount = 0; //Reset Counter
   }
-  Serial.println(threshold);
+  // Serial.println(threshold);
   if (voltage >= threshold) {
     data = "1";
   } else {
@@ -88,7 +88,7 @@ void loop() {
 }
 
 void lookForSynchro(String bit) {
-  String preambel = "1010101010";
+  String preambel = "10101010";
   sequence.concat(bit);
   sequence.remove(0, 1);
   if (sequence == preambel) {
