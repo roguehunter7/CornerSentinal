@@ -48,22 +48,12 @@ ISR(TIMER1_COMPA_vect) {
   String data = "0";
   int sensorValue = analogRead(A0);
   float voltage = sensorValue * (5.0 / 1023.0);
-  // Serial.println(voltage);
+  Serial.println(voltage);
   // Update the running sum and average
-  if (sensorValueCount < windowSize) {
-    // Fill the initial window
-    sensorValueSum += sensorValue;
-    sensorValueCount++;
-  } else {
-    // Update the threshold with the running average
-    threshold = (sensorValueSum  / windowSize) * (5.0 / 1023.0);
-    sensorValueSum = 0 ;
-    sensorValueCount = 0;
-  }
 
   // Serial.println(threshold);
   
-  if (voltage >= threshold ) {
+  if (voltage >= 0.5 ) {
     data = "1";
   } else {
     data = "0";

@@ -1,8 +1,8 @@
 ultralytics
 filterpy 
+numpy
+opencv-python
 scikit-image 
-rpi.gpio
-gpiozero
 gpiod
 python-multipart
 tk
