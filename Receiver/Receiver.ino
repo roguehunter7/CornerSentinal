@@ -1,4 +1,5 @@
 #include <LiquidCrystal.h>
+#include <math.h>
 // Setup the LiquidCrystal library with the pin numbers we have
 // physically connected the module to.
 LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
@@ -12,7 +13,7 @@ boolean receiveData_Done = false;
 boolean crc_check_value=false;
 
 unsigned long sensorValueSum = 0; // Sum of sensor values in the window
-const int windowSize = 30; // Window size for dynamic threshold calculation
+const int windowSize = 100; // Window size for dynamic threshold calculation
 int sensorValueCount = 0; // Sensor value count
 
 float threshold = 0.5; // Initial value for Threshold
@@ -55,15 +56,17 @@ ISR(TIMER1_COMPA_vect) {
     sensorValueSum += sensorValue;
     sensorValueCount++;
   } else {
-    // Update the threshold with the running average
-    threshold = (sensorValueSum  / windowSize) * (5.0 / 1023.0);
+    // Calculate the average sensor value
+    int averageSensorValue = (sensorValueSum * 10) / windowSize;
+    // Round the average sensor value to one decimal place
+    threshold = (averageSensorValue * (5.0 / 1023.0))/10;
     sensorValueSum = 0 ;
     sensorValueCount = 0;
   }
 
   // Serial.println(threshold);
   
-  if (voltage > threshold ) {
+  if (voltage > (threshold + 0.1) ) {
     data = "1";
   } else {
     data = "0";
