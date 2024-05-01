@@ -30,11 +30,11 @@ ld2.calculate_all_points()
 points = ld2.points
 
 # Client socket initialization on RPi2
-receive_address = ('192.168.1.1', 12345)  # IP of RPi1
+receive_address = ('192.168.1.1', 8888)  # IP of RPi1
 s_receive = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s_receive.connect(receive_address)
 
-send_address = ('192.168.1.1', 12346)  # Choose a different port for sending
+send_address = ('192.168.1.1', 8889)  # Choose a different port for sending
 s_send = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s_send.connect(send_address)
 

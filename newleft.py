@@ -31,13 +31,13 @@ points = ld2.points
 
 # Server socket initialization for receiving on RPi1
 s_receive = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-receive_address = ('', 12345)  # IP of RPi1
+receive_address = ('', 8888)  # IP of RPi1
 s_receive.bind(receive_address)
 s_receive.listen(1)
 
 # Server socket initialization for sending on RPi1
 s_send = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-send_address = ('', 12346)  # Choose a different port for sending
+send_address = ('', 8889)  # Choose a different port for sending
 s_send.bind(send_address)
 s_send.listen(1)
 
