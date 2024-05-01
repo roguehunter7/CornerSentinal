@@ -158,9 +158,7 @@ while cap.isOpened():
                         vehicle_pos = calculate_centroid(xmin, ymin, xmax, ymax)
                         correct_lane = lane_detector(points, vehicle_pos, int(option_val))
                         is_wrong_side = correct_lane != 1.0 and correct_lane != 0
-                        if is_wrong_side:
-                            cv2.putText(annotated_frame, f"Wrong lane detected", (int(x), int(y) - 10),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+                        
 
                         binary_code = generate_binary_code(class_id[i], speed, is_stationary, is_wrong_side)
 
