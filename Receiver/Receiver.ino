@@ -63,7 +63,7 @@ ISR(TIMER1_COMPA_vect) {
     sensorValueSum = 0 ;
     sensorValueCount = 0;
   }
-
+    
   // Serial.println(threshold);
   
   if (voltage > (threshold + 0.1) ) {
@@ -78,6 +78,7 @@ ISR(TIMER1_COMPA_vect) {
     case 0: //looking for synchronization sequence
       synchro_Done = false;
       lookForSynchro(data);
+
       if (synchro_Done == true) {
         state = 1;
         sequence = "000000"; // Reset sequence for next synchronization
