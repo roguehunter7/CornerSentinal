@@ -12,7 +12,7 @@ boolean receiveData_Done = false;
 boolean crc_check_value=false;
 
 unsigned long sensorValueSum = 0; // Sum of sensor values in the window
-const int windowSize = 1000; // Window size for dynamic threshold calculation
+const int windowSize = 30; // Window size for dynamic threshold calculation
 int sensorValueCount = 0; // Sensor value count
 
 float threshold = 0.5; // Initial value for Threshold
@@ -48,12 +48,22 @@ ISR(TIMER1_COMPA_vect) {
   String data = "0";
   int sensorValue = analogRead(A0);
   float voltage = sensorValue * (5.0 / 1023.0);
-  Serial.println(voltage);
+  // Serial.println(voltage);
   // Update the running sum and average
+  if (sensorValueCount < windowSize) {
+    // Fill the initial window
+    sensorValueSum += sensorValue;
+    sensorValueCount++;
+  } else {
+    // Update the threshold with the running average
+    threshold = (sensorValueSum  / windowSize) * (5.0 / 1023.0);
+    sensorValueSum = 0 ;
+    sensorValueCount = 0;
+  }
 
   // Serial.println(threshold);
   
-  if (voltage >= 0.5 ) {
+  if (voltage > threshold ) {
     data = "1";
   } else {
     data = "0";
@@ -86,7 +96,7 @@ void loop() {
 }
 
 void lookForSynchro(String bit) {
-  String preambel = "101001";
+  String preambel = "101010";
   sequence.concat(bit);
   sequence.remove(0, 1);
   if (sequence == preambel) {
@@ -98,7 +108,7 @@ void lookForSynchro(String bit) {
 void receiveData(String bit) {
   dataBits.concat(bit);
   if (dataBits.length() == 11) 
-  { Serial.println(dataBits);
+  { // Serial.println(dataBits);
     if (crc_check_value==false) //do the CRC check
     {
       checkCRC(dataBits);  
@@ -108,7 +118,7 @@ void receiveData(String bit) {
     {
       char datamessage[9];
       for(int i=0;i<8;i++){
-        datamessage[i]=dataBits[i];
+        datamessage[i]=+dataBits[i];
       }
       decodeBinaryCode(datamessage);
       dataBits = "";
@@ -168,7 +178,6 @@ void checkCRC(String dataFrame)
 
   if(CRC_Done_false==true)
   {
-    Serial.println("Message had an error and was dropped!");
     crc_check_value=false;  
     dataBits="";
     receiveData_Done=true;
@@ -177,11 +186,6 @@ void checkCRC(String dataFrame)
 }
 void decodeBinaryCode(String binary_code) {
   bool is_stationary = binary_code[0] == '1';
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("Stationary");
-  lcd.setCursor(0, 1);
-  lcd.print("Vehicle Ahead");
   String vehicle_type;
   String speed_range;
   bool is_wrong_side = binary_code[5] == '1';
