@@ -170,7 +170,7 @@ while cap.isOpened():
                             prev_binary_code = binary_code
 
                         display_warning_message(annotated_frame, binary_code)
-                        cv2.putText(annotated_frame, f"Speed: {speed:.2f} km/h", (int(x), int(y) - 10),
+                        cv2.putText(annotated_frame, f"Speed: {speed:.2f} km/h", (int(x), int(y) + 10),
                                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
                         roi = frame[int(y):int(y + h), int(x):int(x + w)]
 
