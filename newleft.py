@@ -132,7 +132,7 @@ while cap.isOpened():
 
         # Check if YOLO inference should be performed on this frame
         if frame_counter % 2 == 0:
-            results = model.track(frame, persist=True, tracker='bytetrack.yaml', imgsz=480, conf=0.20, int8=True)
+            results = model.track(frame, persist=True, tracker='botsort.yaml', imgsz=320, conf=0.25, int8=True)
             annotated_frame = results[0].plot()
 
             if results[0].boxes.id is not None:
@@ -146,7 +146,7 @@ while cap.isOpened():
                     track = track_history[track_ids[i]]
                     track.append((float(x + w / 2), float(y + h / 2)))
 
-                    if len(track) >= 2 and track[-2][1] < track[-1][1]:
+                    if len(track) >= 1 and track[-2][1] < track[-1][1]:
                         distances = [calculate_distance(track[j], track[j + 1]) for j in range(len(track) - 1)]
                         speed = calculate_speed(distances, FACTOR_KM, LATENCY_FPS)
                         is_stationary = speed < 1.0
