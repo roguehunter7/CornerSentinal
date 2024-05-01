@@ -13,7 +13,7 @@ boolean receiveData_Done = false;
 boolean crc_check_value=false;
 
 unsigned long sensorValueSum = 0; // Sum of sensor values in the window
-const int windowSize = 100; // Window size for dynamic threshold calculation
+const int windowSize = 50; // Window size for dynamic threshold calculation
 int sensorValueCount = 0; // Sensor value count
 
 float threshold = 0.5; // Initial value for Threshold
