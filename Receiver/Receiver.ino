@@ -96,7 +96,7 @@ void loop() {
 }
 
 void lookForSynchro(String bit) {
-  String preambel = "101010";
+  String preambel = "101001";
   sequence.concat(bit);
   sequence.remove(0, 1);
   if (sequence == preambel) {

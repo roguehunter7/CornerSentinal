@@ -68,7 +68,7 @@ void transmit_message(const char *msg) {
     gpiod_line_set_value(line, 0);
 
     // Append preamble
-    strcpy(result, "10101");
+    strcpy(result, "101001");
     
 
     int poly[4]={1,0,1,1}; 	
