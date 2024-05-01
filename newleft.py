@@ -146,7 +146,7 @@ while cap.isOpened():
                     track = track_history[track_ids[i]]
                     track.append((float(x + w / 2), float(y + h / 2)))
 
-                    if len(track) >= 1 and track[-1][1] < track[0][1]:
+                    if len(track) >= 2 and track[-2][1] < track[-1][1]:
                         distances = [calculate_distance(track[j], track[j + 1]) for j in range(len(track) - 1)]
                         speed = calculate_speed(distances, FACTOR_KM, LATENCY_FPS)
                         is_stationary = speed < 1.0
