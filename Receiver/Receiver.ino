@@ -66,7 +66,7 @@ ISR(TIMER1_COMPA_vect) {
     
   // Serial.println(threshold);
   
-  if (voltage > (threshold + 0.1) ) {
+  if (voltage > (threshold + 0.15) ) {
     data = "1";
   } else {
     data = "0";
@@ -190,9 +190,12 @@ void checkCRC(String dataFrame)
 }
 void decodeBinaryCode(String binary_code) {
   bool is_stationary = binary_code[0] == '1';
+  bool is_accident = binary_code[1] == '1';
   String vehicle_type;
   String speed_range;
   bool is_wrong_side = binary_code[5] == '1';
+  String speed_id = binary_code.substring(6, 8);
+    String vehicle_id = binary_code.substring(2, 5);
   if (is_stationary == true)
   {
   lcd.clear();
@@ -200,9 +203,9 @@ void decodeBinaryCode(String binary_code) {
   lcd.print("Stationary");
   lcd.setCursor(0, 1);
   lcd.print("Vehicle Ahead");
+  return;
   }
 
-  bool is_accident = binary_code[1] == '1';
   if (is_accident == true)
   {
   lcd.clear();
@@ -210,8 +213,8 @@ void decodeBinaryCode(String binary_code) {
   lcd.print("Accident/Crash");
   lcd.setCursor(0, 1);
   lcd.print("Detected Ahead");
+  return;
   }
-  String vehicle_id = binary_code.substring(2, 5);
   if (vehicle_id == "100") {
     vehicle_type = "Ambulance";
     lcd.clear();
@@ -219,8 +222,7 @@ void decodeBinaryCode(String binary_code) {
     lcd.print("Emergency");
     lcd.setCursor(0, 1);
     lcd.print("Vehicle");
-  } else if (vehicle_id == "010") {
-    vehicle_type = "Car or Van or Taxi/Auto";
+    return;
   } else if (vehicle_id == "011") {
     vehicle_type = "Bus or Truck";
     lcd.clear();
@@ -228,12 +230,9 @@ void decodeBinaryCode(String binary_code) {
     lcd.print("Bus/Truck");
     lcd.setCursor(0, 1);
     lcd.print("Incoming");
-  } else if (vehicle_id == "001") {
-    vehicle_type = "Motorcycle";
-  } else {
-    vehicle_type = "Unknown";
-  }
-  if (is_wrong_side == true)
+    return; 
+  } 
+  else if (is_wrong_side == true)
   {
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -241,19 +240,44 @@ void decodeBinaryCode(String binary_code) {
   lcd.setCursor(0, 1);
   lcd.print("On Wrong Side");
   }
-  String speed_id = binary_code.substring(6, 8);
-  if (speed_id == "11") {
+  else if (speed_id == "11") {
     speed_range = "Overspeed Vehicle";
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("Overspeed");
     lcd.setCursor(0, 1);
     lcd.print("Vehicle");
-  } else if (speed_id == "10") {
+    return;
+  } 
+  else if (vehicle_id == "010") {
+    vehicle_type = "Car or Van or Taxi/Auto";
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Car/Van");
+    lcd.setCursor(0, 1);
+    lcd.print("Incoming");
+    return;
+  }  else if (vehicle_id == "001") {
+    vehicle_type = "Motorcycle";
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Motorcycle");
+    lcd.setCursor(0, 1);
+    lcd.print("Incoming");
+    return;
+  }
+  else if (speed_id == "10") {
     speed_range = "40-60";
   } else if (speed_id == "01") {
     speed_range = "1.5-40";
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Safe Ahead");
+    lcd.setCursor(0, 1);
+    lcd.print("To Turn");
+    return;
   } else {
+    vehicle_type = "Unknown";
     speed_range = "Unknown";
   }
   Serial.print("Vehicle: ");
