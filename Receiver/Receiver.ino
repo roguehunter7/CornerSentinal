@@ -66,7 +66,7 @@ ISR(TIMER1_COMPA_vect) {
     
   // Serial.println(threshold);
   
-  if (voltage > (threshold + 0.15) ) {
+  if (voltage > (threshold + 0.25) ) {
     data = "1";
   } else {
     data = "0";
