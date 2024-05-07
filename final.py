@@ -61,7 +61,7 @@ def generate_binary_code(class_id, speed, is_stationary, is_wrong_side):
         binary_code[6:8] = '11'
     elif 40 <= speed < 60:
         binary_code[6:8] = '10'
-    elif 1.0 <= speed < 40:
+    elif 1.5 <= speed < 40:
         binary_code[6:8] = '01'
 
     return ''.join(binary_code)
