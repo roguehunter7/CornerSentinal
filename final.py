@@ -88,6 +88,8 @@ prev_pts = None
 speed = 0
 prev_track_id = None
 prev_binary_code = None
+is_wrong_side = False
+is_stationary = False
 
 while cap.isOpened():
     ret = cap.grab()
