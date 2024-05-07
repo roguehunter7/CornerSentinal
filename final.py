@@ -103,7 +103,7 @@ while cap.isOpened():
                 for i, box in enumerate(boxes):
                     x, y, w, h = box
                     xmin, ymin, xmax, ymax = x, y, x + w, y + h
-                    track_id = i if len(track_ids) == 0 else track_ids[i]
+                    track_id = i if (len(track_ids) == 0 or frame_counter == 0) else track_ids[i]
                     track = track_history[track_ids[i]]
                     track.append((float(x + w / 2), float(y + h / 2)))
 
