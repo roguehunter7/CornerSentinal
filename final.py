@@ -43,7 +43,7 @@ def generate_binary_code(class_id, speed, is_stationary, is_wrong_side):
 
     # Stationary bit
     binary_code[0] = '1' if is_stationary else '0'
-
+    binary_code[1] = '0' 
     if class_id == 0:  # Ambulance
         binary_code[2:5] = '100'
     elif class_id in [2, 6, 4]:  # Car or Van or Taxi/Auto
@@ -52,6 +52,8 @@ def generate_binary_code(class_id, speed, is_stationary, is_wrong_side):
         binary_code[2:5] = '011'
     elif class_id == 3:  # Motorcycle
         binary_code[2:5] = '001'
+    else:
+        binary_code[2:5] = '000'
 
     # Wrong side warning bit
     binary_code[5] = '1' if is_wrong_side else '0'
@@ -63,6 +65,8 @@ def generate_binary_code(class_id, speed, is_stationary, is_wrong_side):
         binary_code[6:8] = '10'
     elif 1.5 <= speed < 40:
         binary_code[6:8] = '01'
+    else:
+        binary_code[6:8] = '00'
 
     return ''.join(binary_code)
 
@@ -116,6 +120,12 @@ while cap.isOpened():
 
                         if time.time() - stationary_timers[track_ids[i]] > 10.0:
                             is_stationary = True
+                            binary_code = generate_binary_code(class_id[i], speed, is_stationary, is_wrong_side)
+                        
+                        if track_ids[i] != prev_track_id and binary_code != prev_binary_code:
+                            transmit_message(binary_code)
+                            prev_binary_code = binary_code
+                        
                         vehicle_pos = calculate_centroid(xmin, ymin, xmax, ymax)
                         correct_lane = lane_detector(points, vehicle_pos, int(option_val))
                         is_wrong_side = correct_lane != 1.0 and correct_lane != 0
