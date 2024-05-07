@@ -122,7 +122,7 @@ while cap.isOpened():
                         
                         binary_code = generate_binary_code(class_id[i], speed, is_stationary, is_wrong_side)
                         
-                        if track_ids[i] != prev_track_id or binary_code != prev_binary_code:
+                        if track_ids[i] != prev_track_id and binary_code != prev_binary_code:
                             transmit_message(binary_code)
                             prev_binary_code = binary_code
 
