@@ -120,9 +120,7 @@ while cap.isOpened():
                         if time.time() - stationary_timers[track_ids[i]] > 10.0:
                             is_stationary = True
                             binary_code = generate_binary_code(class_id[i], speed, is_stationary, is_wrong_side)                   
-                        if track_ids[i] != prev_track_id and binary_code != prev_binary_code:
-                            transmit_message(binary_code)
-                            prev_binary_code = binary_code 
+ 
                         vehicle_pos = calculate_centroid(xmin, ymin, xmax, ymax)
                         correct_lane = lane_detector(points, vehicle_pos, int(option_val))
                         is_wrong_side = correct_lane != 1.0 and correct_lane != 0
