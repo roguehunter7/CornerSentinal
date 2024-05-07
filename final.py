@@ -85,7 +85,7 @@ frame_counter = 0
 # Placeholder for the previous frame and points for optical flow
 prev_frame = None
 prev_pts = None
-
+speed = 0
 prev_track_id = None
 prev_binary_code = None
 
@@ -113,23 +113,20 @@ while cap.isOpened():
 
                     if len(track) >= 2 and track[-2][1] < track[-1][1]:
                         distances = [calculate_distance(track[j], track[j + 1]) for j in range(len(track) - 1)]
-                        speed = calculate_speed(distances, FACTOR_KM, LATENCY_FPS)
                         is_stationary = speed < 0.5
                         stationary_timers[track_ids[i]] = time.time() if not is_stationary else stationary_timers[
                             track_ids[i]]
 
                         if time.time() - stationary_timers[track_ids[i]] > 10.0:
                             is_stationary = True
-                            binary_code = generate_binary_code(class_id[i], speed, is_stationary, is_wrong_side)
-                        
+                            binary_code = generate_binary_code(class_id[i], speed, is_stationary, is_wrong_side)                   
                         if track_ids[i] != prev_track_id and binary_code != prev_binary_code:
                             transmit_message(binary_code)
-                            prev_binary_code = binary_code
-                        
+                            prev_binary_code = binary_code 
                         vehicle_pos = calculate_centroid(xmin, ymin, xmax, ymax)
                         correct_lane = lane_detector(points, vehicle_pos, int(option_val))
                         is_wrong_side = correct_lane != 1.0 and correct_lane != 0
-                        
+                        speed = calculate_speed(distances, FACTOR_KM, LATENCY_FPS)
                         binary_code = generate_binary_code(class_id[i], speed, is_stationary, is_wrong_side)
                         
                         if track_ids[i] != prev_track_id and binary_code != prev_binary_code:
