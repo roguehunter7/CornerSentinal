@@ -10,7 +10,7 @@ from send import *
 model = YOLO('train3/weights/best.pt')
 
 # Open the video file
-video_path = "test_images/output1.mp4"
+video_path = "test_images/output2.mp4"
 cap = cv2.VideoCapture(video_path)
 
 # Constants for speed calculation
@@ -97,7 +97,7 @@ while cap.isOpened():
 
         # Check if YOLO inference should be performed on this frame
         if frame_counter % 2 == 0:
-            results = model.track(frame, persist=True, tracker='bytetrack.yaml', imgsz=320, conf=0.20, int8=True)
+            results = model.track(frame, persist=True, tracker='bytetrack.yaml', imgsz=320, conf=0.20, classes=3, int8=True)
             annotated_frame = results[0].plot()
 
             if results[0].boxes.id is not None:
