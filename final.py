@@ -10,7 +10,7 @@ from send import *
 model = YOLO('train3/weights/best.pt')
 
 # Open the video file
-video_path = "test_images/wrongside.mp4"
+video_path = "test_images/output2.mp4"
 cap = cv2.VideoCapture(video_path)
 
 # Constants for speed calculation
