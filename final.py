@@ -7,7 +7,7 @@ import numpy as np
 from send import *
 
 # Load the YOLOv8 model
-model = YOLO('train3/weights/best.onnx')
+model = YOLO('train3/weights/best.pt')
 
 # Open the video file
 video_path = "test_images/output2.mp4"
