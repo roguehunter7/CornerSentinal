@@ -56,7 +56,7 @@ def generate_binary_code(class_id, speed, is_stationary, is_wrong_side):
         binary_code[2:5] = '000'
 
     # Wrong side warning bit
-    binary_code[5] = '1' if is_wrong_side else '0'
+    binary_code[5] = '1' 
 
     # Replace speed section
     if speed > 60:  # Overspeed Vehicle
