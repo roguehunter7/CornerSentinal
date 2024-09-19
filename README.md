@@ -74,8 +74,10 @@ Li-Fi, short for Light Fidelity, is used for real-time communication between the
 
 ---
 ## Circuit Diagrams
-
-![alt text](Documents/Picture5.png)![alt text](Documents/Picture6.png)
+### Transmitter
+![alt text](Documents/Picture5.png)
+### Receiver 
+![alt text](Documents/Picture6.png)
 ## Installation
 
 ### Prerequisites
