@@ -7,6 +7,8 @@
 
 **Corner Sentinel** is an advanced system designed to enhance road safety at sharp, blind corners, particularly in hilly regions. It combines **Image Processing**, **Machine Learning**, and **Li-Fi Communication** technologies to detect potential hazards, notify drivers in real time, and help prevent collisions. By leveraging these technologies, Corner Sentinel addresses the challenges posed by poor visibility, speeding, and wrong-side driving in dangerous areas.
 
+![alt text](Documents/Picture1.png)
+
 This repository contains the complete source code, project report, and relevant technical documentation.
 
 ## Table of Contents
@@ -39,6 +41,8 @@ The system is composed of two primary modules:
 1. **Machine Learning Module:** This module runs on a Raspberry Pi 5 and performs real-time vehicle detection, classification, and tracking using the YOLOv8 model. It analyzes traffic feeds from cameras positioned at blind corners.
 2. **Li-Fi Communication Module:** The module generates binary codes corresponding to detected hazards (e.g., wrong-lane driving, stationary vehicles, speeding) and transmits this data to approaching vehicles via Li-Fi.
 
+![alt text](Documents/Picture2.png)
+
 The **working** of the system is as follows:
 1. **Video Acquisition and Preprocessing**: Cameras capture live traffic feeds, and frames are resized and normalized.
 2. **Vehicle Detection and Classification**: YOLOv8 model identifies vehicles and outputs bounding boxes and class labels.
@@ -46,6 +50,8 @@ The **working** of the system is as follows:
 4. **Hazard Assessment**: Based on factors like speed, lane usage, and the presence of emergency or stationary vehicles, Corner Sentinel assesses potential risks.
 5. **Li-Fi Transmission**: Binary code representing the detected hazards is transmitted using LEDs via Manchester Encoding.
 6. **Warning Reception**: Vehicles equipped with receivers demodulate signals and warn drivers of potential dangers.
+
+![alt text](Documents/Picture3.png)
 
 ---
 
@@ -67,7 +73,9 @@ Li-Fi, short for Light Fidelity, is used for real-time communication between the
 - **Solar Panels**: Act as receivers for decoding the Li-Fi signals and extracting binary codes.
 
 ---
+## Circuit Diagrams
 
+![alt text](Documents/Picture5.png)![alt text](Documents/Picture6.png)
 ## Installation
 
 ### Prerequisites
@@ -102,6 +110,8 @@ The program will begin analyzing traffic feeds, detecting vehicles, and sending 
 
 ### Binary Encoding System
 Data sent via Li-Fi is encoded in an 8-bit format:
+
+![alt text](Documents/Picture4.png)
 
 - **Bit 7**: Stationary Vehicle Detection
 - **Bit 6**: Accident Detection
